@@ -27,6 +27,7 @@ class GameView(ctx: Context, private val g: Game) : View(ctx) {
 
     override fun onSizeChanged(w: Int, h: Int, ow: Int, oh: Int) {
         scale = h / r.VH
+        r.icons.pxScale = scale
         vw = w / scale
         updateSafe()
     }

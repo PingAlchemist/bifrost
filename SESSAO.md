@@ -47,6 +47,10 @@ emulador NÃO roda aqui (virtualização desligada na BIOS) — testar no celula
   em SpriteTool/SideLayers/FrontLayers; arco separado (`cacador_arco.png`, sem corda) na mão via `staffId`; a corda e a
   flecha são desenhadas pelo jogo (`SpriteSkin.stringPts`, canal `CH_PULL`). Clipes ATTACK_BOW, DISPARO_DUPLO, CHUVA,
   OLHO_AGUIA com dano no instante da soltura (`SKILL_HIT`, `DUPLO_HIT2`).
+- **Ícones desenhados** (v1.6.0): `Icons.kt` — `IconArt` desenha em quadro 100x100 (13 habilidades; equipamentos por
+  tipo × mapa de origem com 7 materiais: bronze, couro, bosque, solar, gelo, sombrio, dracônico; aura/faíscas no T3+),
+  `Icons` guarda em bitmap no tamanho da tela. Usado na barra de skills, painel Skills, Mestre de Classes, bolsa e equipados.
+  Item novo no JSON ganha ícone pelo `tipo` + `mapa` automaticamente.
 - **Versão** visível na tela inicial/seleção (`VERSAO` em Defs.kt + versionCode/versionName): aumentar a cada entrega.
 
 ## Pendente / combinado

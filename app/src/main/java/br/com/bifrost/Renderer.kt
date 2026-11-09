@@ -33,6 +33,7 @@ class Renderer(private val g: Game, private val res: Resources) {
     var safeB = 0f
 
     private val art = Art()
+    val icons = Icons()
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
     private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND }
     private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD }
@@ -1218,14 +1219,18 @@ class Renderer(private val g: Game, private val res: Resources) {
                 cSlot[k] = lv * 1000 + id; cSlotSp[k] = spc
                 sSlot[k] = if (lv > 0) "Nv$lv · ${spc}SP" else "bloqueada"
             }
-            art.circle(c, x + sz / 2, y + sz / 2 - 6f, 27f, if (lv > 0) s.cor else col(0xFF616161))
-            art.circle(c, x + sz / 2 - 8f, y + sz / 2 - 16f, 8f, col(0x33FFFFFF))
-            label(c, s.sigla, x + sz / 2, y + sz / 2 + 1f, 19f, Color.WHITE, Paint.Align.CENTER)
+            val isz = 60f
+            val ix = x + (sz - isz) / 2
+            val iy = y + 4f
+            icons.skill(c, id, ix, iy, isz, lv <= 0)
             label(c, sSlot[k], x + sz / 2, y + sz - 6f, 11f, Color.WHITE, Paint.Align.CENTER)
             if (lv > 0 && g.cd[id] > 0f) {
+                c.save()
+                c.clipRect(ix + 2f, iy + 2f, ix + isz - 2f, iy + isz - 2f)
                 fill.color = col(0x99000000)
-                rect.set(x + sz / 2 - 27f, y + sz / 2 - 33f, x + sz / 2 + 27f, y + sz / 2 + 21f)
+                rect.set(ix - 12f, iy - 12f, ix + isz + 12f, iy + isz + 12f)
                 c.drawArc(rect, -90f, 360f * (g.cd[id] / s.cd).coerceIn(0f, 1f), true, fill)
+                c.restore()
             }
             if (lv > 0 && p.sp < s.sp(lv)) {
                 fill.color = col(0x660D47A1); rect.set(x, y, x + sz, y + sz); c.drawRoundRect(rect, 10f, 10f, fill)
@@ -1434,8 +1439,7 @@ class Renderer(private val g: Game, private val res: Resources) {
             val y = pt + 86f + k * 116f
             rect.set(pl + 16f, y, pl + pw - 16f, y + 106f)
             fill.color = col(0x14000000); c.drawRoundRect(rect, 8f, 8f, fill)
-            art.circle(c, pl + 66f, y + 53f, 34f, if (lv > 0) s.cor else col(0xFF9E9E9E))
-            label(c, s.sigla, pl + 66f, y + 61f, 22f, Color.WHITE, Paint.Align.CENTER)
+            icons.skill(c, id, pl + 30f, y + 17f, 72f, lv <= 0)
             label(c, s.nome, pl + 116f, y + 30f, 20f, INK)
             label(c, "Nv $lv/${s.maxLv}   ·   SP ${s.sp(max(1, lv))}   ·   recarga ${"%.1f".format(s.cd)}s", pl + 116f + text.measureText(s.nome) + 18f, y + 30f, 14f, INK2)
             label(c, (if (lv > 0) "Atual: " else "Nv 1: ") + s.desc(max(1, lv)), pl + 116f, y + 58f, 15f, INK)
@@ -1611,7 +1615,8 @@ class Renderer(private val g: Game, private val res: Resources) {
         rect.set(x, y, x + sz, y + sz)
         stroke.strokeWidth = if (it != null) 2f else 1f; stroke.color = cor
         c.drawRoundRect(rect, 6f, 6f, stroke)
-        if (tipo != null) itemIcon(c, tipo, x + sz / 2, y + sz / 2, sz * 0.32f, cor)
+        if (it != null) icons.gear(c, it.base, it.tier, x + sz * 0.07f, y + sz * 0.07f, sz * 0.86f)
+        else if (tipo != null) itemIcon(c, tipo, x + sz / 2, y + sz / 2, sz * 0.32f, cor)
     }
 
     private fun itemIcon(c: Canvas, t: EqType, cx: Float, cy: Float, r: Float, cor: Int) {
@@ -1818,7 +1823,8 @@ class Renderer(private val g: Game, private val res: Resources) {
                 yy += 6f
                 for (sid in j.skills) {
                     if (sid == 0) continue
-                    label(c, "• " + SKILLS[sid].nome, cx + 10f, yy, 14f, INK); yy += 20f
+                    icons.skill(c, sid, cx + 10f, yy - 15f, 20f)
+                    label(c, SKILLS[sid].nome, cx + 36f, yy, 14f, INK); yy += 22f
                 }
                 button(c, cx + 10f, cy + 330f, cw - 20f, 46f, "Escolher", p.jlv >= 10, BTN_GOLD, 17f) { g.changeJob(j) }
             }
