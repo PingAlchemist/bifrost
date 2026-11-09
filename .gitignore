@@ -1,0 +1,20 @@
+# Build e caches
+build/
+app/build/
+.gradle/
+.kotlin/
+captures/
+*.apk
+*.aab
+
+# Configuração local (caminho do SDK desta máquina)
+local.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Sistema
+Thumbs.db
+.DS_Store

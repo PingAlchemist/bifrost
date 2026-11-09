@@ -1,0 +1,32 @@
+# Sementes dos objetos do meio do mapa (x y nome), em pixels de art/source/floresta_completo.png.
+# Cada semente vira um objeto separado. As bordas de cima e de baixo usam a primeira e a última linha da imagem.
+# Para separar/juntar objetos, edite esta lista e rode de novo art/tools/ForestExtract.java.
+225 245 arvore_esq_alta
+465 320 pinheiro_esq
+400 322 pedras_pinheiro
+415 410 arbusto_pinheiro
+138 355 arbusto_esq
+645 283 arbusto_pequeno
+606 309 pedra_pequena
+1162 215 arvore_dir_alta
+1050 298 pedras_centro
+1260 293 arbusto_dir
+1527 310 pinheiro_dir
+1152 420 arvore_centro
+922 420 arbusto_centro
+1023 390 arbusto_centro2
+1508 497 pedra_dir
+108 590 arvore_esq_baixa
+62 505 pedra_esq
+466 585 arbusto_baixo
+570 550 pedra_baixo
+742 625 arvore_grande
+690 650 arvore_grande
+745 700 arvore_grande
+648 696 pedras_arvore_grande
+767 517 pedra_meio
+1547 650 arvore_dir_baixa
+1441 597 arbusto_dir_baixo
+1640 590 arbusto_borda_dir
+205 716 pedra_esq_baixa
+1001 152 pedra_topo

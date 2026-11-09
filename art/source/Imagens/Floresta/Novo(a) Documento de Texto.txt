@@ -1,0 +1,31 @@
+Vamos montar um novo mapa de floresta a partir de duas imagens alinhadas pixel a pixel:
+- art/source/floresta_completo.png: mapa com árvores, arbustos e pedras
+- art/source/floresta_chao.png: o mesmo mapa só com o chão
+Não altere a lógica de combate, status e monstros; só crie o mapa e a navegação.
+
+## Camadas
+1. Chão: use floresta_chao.png como fundo.
+2. Borda de floresta de CIMA: recorte a faixa de árvores do topo de floresta_completo.png e desenhe junto com o fundo (o personagem sempre fica na frente dela).
+3. Borda de floresta de BAIXO: recorte a faixa de árvores da parte de baixo e desenhe POR CIMA dos personagens, para ele passar atrás das copas quando chegar perto.
+4. Objetos do meio do mapa (árvores, arbustos, pedras): extraia pela diferença entre as duas imagens:
+   - diferença de cor por pixel acima de um limiar (comece em ~70 somando RGB);
+   - remova componentes pequenos (ruído de flores e tufos que mudaram levemente);
+   - para CADA objeto separadamente, feche pequenas falhas e preencha os buracos internos da copa, sem fundir objetos vizinhos;
+   - suavize 1px na borda da máscara;
+   - salve cada objeto como sprite transparente com o ponto de apoio na base (pé do tronco/base da pedra) e use y-sorting com o personagem e os monstros.
+   Gere uma imagem de prévia mostrando só os objetos extraídos sobre fundo magenta e pare para eu aprovar antes de integrar.
+
+## Colisão
+- Bloqueie as faixas de floresta de cima e de baixo.
+- Árvores e pedras: colisão só numa elipse pequena na base (tronco/pedra), não na copa.
+- Arbustos: passáveis.
+
+## Saídas
+- Três saídas: estrada na borda esquerda, estrada na borda direita e a mancha de terra no topo. Por enquanto, a da esquerda volta para os Campos de Aurora e as outras duas mostram um aviso de "em breve".
+
+## Escala e câmera
+- Escala em que o guerreiro tenha cerca de metade da altura de uma árvore média do mapa; amplie a imagem com filtro suave se necessário.
+- A câmera segue o personagem e para nas bordas do mapa.
+
+## Forma de trabalho
+- Confirme que compila, gere a prévia do mapa montado com o personagem e pare para eu mandar o print.
