@@ -50,7 +50,7 @@ emulador NÃO roda aqui (virtualização desligada na BIOS) — testar no celula
 - **Versão** visível na tela inicial/seleção (`VERSAO` em Defs.kt + versionCode/versionName): aumentar a cada entrega.
 
 ## Pendente / combinado
-- **EXP e drop 15x para testes**: `EXP_RATE = 15f` e `DROP_RATE = 15f` em `Defs.kt` — voltar para `1f` depois.
+- **EXP, drop e zeny 60x para testes**: `EXP_RATE`, `DROP_RATE`, `ZENY_RATE` = 60f em `Defs.kt` — voltar para `1f` depois. Equipamentos com tier: `Equip.kt` + `assets/equipamentos.json` (etapa 1 e drops de comuns feitos; MVP, desmontar e craft pendentes).
 - Usuário vai mandar print/vídeo da floresta integrada e do combate novo para próximos ajustes.
 - Música: as faixas oficiais do RO (C:\Gravity\Ragnarok\BGM) NÃO podem ser usadas/recriadas. Opções oferecidas e
   ainda sem resposta: (1) composições originais no mesmo clima, (2) opção "música personalizada" tocando arquivos do celular.
