@@ -18,3 +18,4 @@ local.properties
 # Sistema
 Thumbs.db
 .DS_Store
+.claude/

@@ -1283,6 +1283,19 @@ object SpriteClips {
     ))
 }
 
+/** Visual em sprites: PNGs e medidas geradas por art/tools (SpriteTool, SideLayers, FrontLayers). */
+class SpriteSkin(
+    val ids: IntArray,
+    /** Lado: corpo, braço+espada, perna da frente, perna de trás. */
+    val sideIds: IntArray,
+    /** Frente, 3/4 frente, 3/4 costas, costas: corpo sem pernas, perna esquerda, perna direita. */
+    val frontIds: IntArray,
+    val anchorX: Float, val baseY: Float,
+    val hipFX: Float, val hipFY: Float, val hipBX: Float, val hipBY: Float, val shoulderX: Float, val shoulderY: Float,
+    /** Por vista (0 = frente, 1 = 3/4 frente, 2 = 3/4 costas, 3 = costas): quadril e centro de cada perna. */
+    val fHipY: FloatArray, val fLegL: FloatArray, val fLegR: FloatArray,
+)
+
 class SpriteHero(private val res: Resources, private val art: Art) {
     companion object {
         const val S = 0
@@ -1295,23 +1308,47 @@ class SpriteHero(private val res: Resources, private val art: Art) {
         const val SW = 7
         val NAMES = arrayOf("frente", "3/4 frente direita", "lado direito", "3/4 costas direita", "costas",
             "3/4 costas esquerda", "lado esquerdo", "3/4 frente esquerda")
-        private val IDS = intArrayOf(
-            R.drawable.guerreiro_s, R.drawable.guerreiro_se, R.drawable.guerreiro_e, R.drawable.guerreiro_ne,
-            R.drawable.guerreiro_n, R.drawable.guerreiro_nw, R.drawable.guerreiro_w, R.drawable.guerreiro_sw
+        /** Guerreiro: folha art/source/guerreiro_sheet.png (sprite 248x420). */
+        val GUERREIRO = SpriteSkin(
+            intArrayOf(
+                R.drawable.guerreiro_s, R.drawable.guerreiro_se, R.drawable.guerreiro_e, R.drawable.guerreiro_ne,
+                R.drawable.guerreiro_n, R.drawable.guerreiro_nw, R.drawable.guerreiro_w, R.drawable.guerreiro_sw
+            ),
+            intArrayOf(R.drawable.lado_corpo, R.drawable.lado_braco, R.drawable.lado_perna_f, R.drawable.lado_perna_t),
+            intArrayOf(
+                R.drawable.frente_s_corpo, R.drawable.frente_s_perna_e, R.drawable.frente_s_perna_d,
+                R.drawable.frente_se_corpo, R.drawable.frente_se_perna_e, R.drawable.frente_se_perna_d,
+                R.drawable.frente_ne_corpo, R.drawable.frente_ne_perna_e, R.drawable.frente_ne_perna_d,
+                R.drawable.frente_n_corpo, R.drawable.frente_n_perna_e, R.drawable.frente_n_perna_d
+            ),
+            anchorX = 124f, baseY = 418f,
+            hipFX = 112f, hipFY = 318f, hipBX = 146f, hipBY = 318f, shoulderX = 124f, shoulderY = 252f,
+            fHipY = floatArrayOf(329f, 328f, 330f, 333f),
+            fLegL = floatArrayOf(93f, 103f, 92f, 90f),
+            fLegR = floatArrayOf(161f, 165f, 157f, 158f),
         )
-        /** Camadas do sprite de lado (art/tools/SideLayers.java): corpo, braço+espada, perna da frente, perna de trás. */
-        private val SIDE_IDS = intArrayOf(R.drawable.lado_corpo, R.drawable.lado_braco, R.drawable.lado_perna_f, R.drawable.lado_perna_t)
-        /** Vistas frente/3-4/costas (art/tools/FrontLayers.java): corpo sem pernas, perna esquerda, perna direita. */
-        private val FRONT_IDS = intArrayOf(
-            R.drawable.frente_s_corpo, R.drawable.frente_s_perna_e, R.drawable.frente_s_perna_d,
-            R.drawable.frente_se_corpo, R.drawable.frente_se_perna_e, R.drawable.frente_se_perna_d,
-            R.drawable.frente_ne_corpo, R.drawable.frente_ne_perna_e, R.drawable.frente_ne_perna_d,
-            R.drawable.frente_n_corpo, R.drawable.frente_n_perna_e, R.drawable.frente_n_perna_d
+        /** Aprendiz: folha art/source/aprendiz_sheet.png (sprite 262x420); de lado a perna de trás é cópia da da frente. */
+        val APRENDIZ = SpriteSkin(
+            intArrayOf(
+                R.drawable.aprendiz_s, R.drawable.aprendiz_se, R.drawable.aprendiz_e, R.drawable.aprendiz_ne,
+                R.drawable.aprendiz_n, R.drawable.aprendiz_nw, R.drawable.aprendiz_w, R.drawable.aprendiz_sw
+            ),
+            intArrayOf(
+                R.drawable.aprendiz_lado_corpo, R.drawable.aprendiz_lado_braco,
+                R.drawable.aprendiz_lado_perna_f, R.drawable.aprendiz_lado_perna_t
+            ),
+            intArrayOf(
+                R.drawable.aprendiz_frente_s_corpo, R.drawable.aprendiz_frente_s_perna_e, R.drawable.aprendiz_frente_s_perna_d,
+                R.drawable.aprendiz_frente_se_corpo, R.drawable.aprendiz_frente_se_perna_e, R.drawable.aprendiz_frente_se_perna_d,
+                R.drawable.aprendiz_frente_ne_corpo, R.drawable.aprendiz_frente_ne_perna_e, R.drawable.aprendiz_frente_ne_perna_d,
+                R.drawable.aprendiz_frente_n_corpo, R.drawable.aprendiz_frente_n_perna_e, R.drawable.aprendiz_frente_n_perna_d
+            ),
+            anchorX = 131f, baseY = 417f,
+            hipFX = 124f, hipFY = 312f, hipBX = 124f, hipBY = 312f, shoulderX = 132f, shoulderY = 238f,
+            fHipY = floatArrayOf(329f, 325f, 310f, 315f),
+            fLegL = floatArrayOf(93f, 108f, 97f, 96f),
+            fLegR = floatArrayOf(173f, 180f, 163f, 165f),
         )
-        // por vista (0 = frente, 1 = 3/4 frente, 2 = 3/4 costas, 3 = costas): quadril e centro de cada perna
-        private val F_HIP_Y = floatArrayOf(329f, 328f, 330f, 333f)
-        private val F_LEG_L = floatArrayOf(93f, 103f, 92f, 90f)
-        private val F_LEG_R = floatArrayOf(161f, 165f, 157f, 158f)
         /** direção -> vista (-1 = lado) e se é espelhada */
         private val VIEW_OF = intArrayOf(0, 1, -1, 2, 3, 2, -1, 1)
         private val MIRROR_OF = booleanArrayOf(false, false, false, false, false, true, true, true)
@@ -1325,19 +1362,9 @@ class SpriteHero(private val res: Resources, private val art: Art) {
         val FY = floatArrayOf(1f, 0.707f, 0f, -0.707f, -1f, -0.707f, 0f, 0.707f)
         private val SECTOR = intArrayOf(E, SE, S, SW, W, NW, N, NE)
 
-        // medidas dos PNGs (espaço do sprite 248x420)
-        const val ANCHOR_X = 124f
-        const val BASE_Y = 418f
+        // altura do conteúdo dos PNGs (igual nos visuais); âncora e pivôs ficam em SpriteSkin
         const val CONTENT_H = 412f
         const val TARGET_H = 72f
-
-        // pivôs do sprite de lado
-        const val HIP_F_X = 112f
-        const val HIP_F_Y = 318f
-        const val HIP_B_X = 146f
-        const val HIP_B_Y = 318f
-        const val SHOULDER_X = 124f
-        const val SHOULDER_Y = 252f
 
         // ciclo de andar
         const val STRIDE = 38f      // unidades de mundo percorridas por ciclo (2 passos): fase segue a velocidade
@@ -1356,6 +1383,9 @@ class SpriteHero(private val res: Resources, private val art: Art) {
         }
     }
 
+    /** Visual atual; trocar recarrega os PNGs no próximo desenho. */
+    var skin = GUERREIRO
+    private var loaded: SpriteSkin? = null
     private val bmps = arrayOfNulls<Bitmap>(8)
     private val side = arrayOfNulls<Bitmap>(4)
     private val front = arrayOfNulls<Bitmap>(12)
@@ -1387,11 +1417,12 @@ class SpriteHero(private val res: Resources, private val art: Art) {
     private var lastCosSign = 1f
 
     private fun load() {
-        if (bmps[0] != null) return
+        if (loaded === skin) return
+        loaded = skin
         val o = BitmapFactory.Options().apply { inScaled = false }
-        for (i in 0 until 8) bmps[i] = BitmapFactory.decodeResource(res, IDS[i], o)
-        for (i in 0 until 4) side[i] = BitmapFactory.decodeResource(res, SIDE_IDS[i], o)
-        for (i in 0 until 12) front[i] = BitmapFactory.decodeResource(res, FRONT_IDS[i], o)
+        for (i in 0 until 8) bmps[i] = BitmapFactory.decodeResource(res, skin.ids[i], o)
+        for (i in 0 until 4) side[i] = BitmapFactory.decodeResource(res, skin.sideIds[i], o)
+        for (i in 0 until 12) front[i] = BitmapFactory.decodeResource(res, skin.frontIds[i], o)
     }
 
     private var atkScale = 1f
@@ -1524,29 +1555,54 @@ class SpriteHero(private val res: Resources, private val art: Art) {
         c.rotate(tilt)
         if (atkRig) {
             c.scale(sx * k * (if (atkDx < 0f) -1f else 1f), sy * k)
-            c.translate(-ANCHOR_X, -BASE_Y)
+            c.translate(-skin.anchorX, -skin.baseY)
             drawSidePose(c, p[CH_LEG_F], p[CH_LEG_B], 0f, 0f, p[CH_HAND_F], p[CH_SIT], 0)
         } else if (sideRig) {
             c.scale(sx * k * (if (d == W) -1f else 1f), sy * k)
-            c.translate(-ANCHOR_X, -BASE_Y + BODY_DROP * w * abs(s))
+            c.translate(-skin.anchorX, -skin.baseY + BODY_DROP * w * abs(s))
             drawSideRig(c, s, cos(phase), w)
         } else if (frontRig) {
             c.scale(sx * k * (if (MIRROR_OF[d]) -1f else 1f), sy * k)
-            c.translate(-ANCHOR_X, -BASE_Y)
+            c.translate(-skin.anchorX, -skin.baseY)
             drawFrontRig(c, VIEW_OF[d], s, w)
         } else {
             val bmp = bmps[d]
             if (bmp != null) {
                 c.scale(sx * k, sy * k)
-                c.drawBitmap(bmp, -ANCHOR_X, -BASE_Y, paint)
+                c.drawBitmap(bmp, -skin.anchorX, -skin.baseY, paint)
                 if (flash > 0f) {
                     flashPaint.alpha = (flash / 0.15f * 210).toInt().coerceIn(0, 255)
-                    c.drawBitmap(bmp, -ANCHOR_X, -BASE_Y, flashPaint)
+                    c.drawBitmap(bmp, -skin.anchorX, -skin.baseY, flashPaint)
                 }
             }
         }
         c.restore()
         if (oneShot == 1) trail(c, x + ox, y + oy, sc)
+    }
+
+    /**
+     * Morte com o próprio sprite: pisca branco, cai de costas girando nos pés (0,4s), quica de leve e fica deitado.
+     * t: segundos desde a morte.
+     */
+    fun drawDead(c: Canvas, x: Float, y: Float, sc: Float, t: Float) {
+        load()
+        val right = FX[dir] >= 0f
+        val bmp = bmps[if (right) E else W] ?: return
+        val fall = Ease.apply(Ease.IN, (t / 0.4f).coerceIn(0f, 1f))
+        val bounce = if (t in 0.4f..0.6f) sin((t - 0.4f) / 0.2f * kotlin.math.PI.toFloat()) * 6f else 0f
+        val ang = (fall * 88f - bounce) * (if (right) -1f else 1f)
+        val k = sc * TARGET_H / CONTENT_H
+        art.shadow(c, x, y, 16f * sc * (1f + 0.6f * fall))
+        c.save()
+        c.translate(x, y - 6f * sc * fall)
+        c.rotate(ang)
+        c.scale(k, k)
+        c.drawBitmap(bmp, -skin.anchorX, -skin.baseY, paint)
+        if (t < 0.15f) {
+            flashPaint.alpha = ((1f - t / 0.15f) * 210).toInt().coerceIn(0, 255)
+            c.drawBitmap(bmp, -skin.anchorX, -skin.baseY, flashPaint)
+        }
+        c.restore()
     }
 
     /** Lado: perna de trás, perna da frente, corpo, braço+espada — cada parte girando no seu pivô. */
@@ -1571,12 +1627,12 @@ class SpriteHero(private val res: Resources, private val art: Art) {
         val arm = side[1] ?: return
         val legF = side[2] ?: return
         val legB = side[3] ?: return
-        part(c, legB, HIP_B_X, HIP_B_Y, angB, liftB, darkPaints[darkLv.coerceIn(0, 7)])
-        part(c, legF, HIP_F_X, HIP_F_Y, angF, liftF, paint)
+        part(c, legB, skin.hipBX, skin.hipBY, angB, liftB, darkPaints[darkLv.coerceIn(0, 7)])
+        part(c, legF, skin.hipFX, skin.hipFY, angF, liftF, paint)
         c.save()
         c.translate(0f, crouch)
         c.drawBitmap(body, 0f, 0f, paint)
-        part(c, arm, SHOULDER_X, SHOULDER_Y, armAng, 0f, paint)
+        part(c, arm, skin.shoulderX, skin.shoulderY, armAng, 0f, paint)
         c.restore()
     }
 
@@ -1592,8 +1648,8 @@ class SpriteHero(private val res: Resources, private val art: Art) {
         val liftL = max(0f, s) * w
         val liftR = max(0f, -s) * w
         val adv = if (v == 1 || v == 2) F_ADV else 0f
-        frontLeg(c, legL, F_LEG_L[v], F_HIP_Y[v], liftL, adv)
-        frontLeg(c, legR, F_LEG_R[v], F_HIP_Y[v], liftR, adv)
+        frontLeg(c, legL, skin.fLegL[v], skin.fHipY[v], liftL, adv)
+        frontLeg(c, legR, skin.fLegR[v], skin.fHipY[v], liftR, adv)
         c.drawBitmap(body, F_SWAY * s * w, -F_RISE * abs(s) * w, paint)
     }
 

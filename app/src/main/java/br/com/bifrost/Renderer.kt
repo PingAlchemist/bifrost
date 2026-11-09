@@ -266,7 +266,11 @@ class Renderer(private val g: Game, private val res: Resources) {
             }
             items[i] = null
         }
-        if (g.dead) {
+        deadT = if (g.dead) deadT + frameDt else 0f
+        if (g.dead && fx && (g.p.job == Job.GUERREIRO || g.p.job == Job.APRENDIZ)) {
+            spriteHero.skin = skinOf(g.p.job)
+            spriteHero.drawDead(c, g.px, g.py, Style.CHAR_SCALE, deadT)
+        } else if (g.dead) {
             art.shadow(c, g.px, g.py, 15f)
             art.rr(c, g.px - 22f, g.py - 12f, g.px + 22f, g.py, 5f, g.p.job.cor)
             art.circle(c, g.px + 22f, g.py - 8f, 11f, col(0xFFFFE0BD))
@@ -732,6 +736,10 @@ class Renderer(private val g: Game, private val res: Resources) {
     // ---------- guerreiro em sprites (8 direções) ----------
     private val spriteHero = SpriteHero(res, art)
     private var spDir = SpriteHero.S
+    private var deadT = 0f
+
+    /** Visual em sprites da classe (só Aprendiz e Guerreiro têm sprites). */
+    private fun skinOf(job: Job) = if (job == Job.APRENDIZ) SpriteHero.APRENDIZ else SpriteHero.GUERREIRO
     private var prevAtkSeq = -1
     private var prevCastSeq = -1
     private var prevHp = -1
@@ -787,6 +795,7 @@ class Renderer(private val g: Game, private val res: Resources) {
             turnStepT = 0.04f
         }
         spriteHero.dir = spDir
+        spriteHero.skin = skinOf(g.p.job)
         // gatilhos visuais a partir de eventos do jogo (sem mexer na lógica)
         val p = g.p
         if (prevHp < 0) prevHp = p.hp
@@ -846,6 +855,7 @@ class Renderer(private val g: Game, private val res: Resources) {
         testDirT += tdt
         if (testDirT > (if (testIdx == 1) 2.4f else 1.2f)) { testDirT = 0f; testDir = (testDir + 1) % 8 }
         testSprite.dir = testDir
+        testSprite.skin = skinOf(g.p.job)
         // animações de um disparo se repetem
         testTrig -= tdt
         if (testTrig <= 0f) {

@@ -8,7 +8,7 @@ import java.util.List;
 
 /**
  * Prepara os sprites do guerreiro a partir da folha original.
- * Uso: java SpriteTool.java <folha.png> <pasta res/drawable-nodpi> <pasta art/parts> <preview.png> <alturaFinal>
+ * Uso: java SpriteTool.java <folha.png> <pasta res/drawable-nodpi> <pasta art/parts> <preview.png> <alturaFinal> [prefixo=guerreiro]
  *
  * - Remove o fundo (transparente ou branco por preenchimento a partir das bordas) e limpa o halo.
  * - Fileira de cima: 5 vistas (frente, 3/4 frente, lado, 3/4 costas, costas) -> mesma tela, centralizadas
@@ -26,6 +26,7 @@ public class SpriteTool {
         File outParts = new File(a[2]);
         File preview = new File(a[3]);
         int targetH = Integer.parseInt(a[4]);
+        String pre = a.length > 5 ? a[5] : "guerreiro";
 
         BufferedImage in = ImageIO.read(src);
         W = in.getWidth();
@@ -84,14 +85,13 @@ public class SpriteTool {
         int ow = (int) Math.round(cw * sc);
         if (ow % 2 == 1) ow++;
         int oh = targetH;
-        String[] names = {"guerreiro_s", "guerreiro_se", "guerreiro_e", "guerreiro_ne", "guerreiro_n"};
         BufferedImage[] fin = new BufferedImage[8];
         for (int i = 0; i < 5; i++) fin[i] = resize(canv[i], ow, oh);
         // espelhadas: SE->SW, E->W, NE->NW
         fin[5] = mirror(fin[3]); // nw
         fin[6] = mirror(fin[2]); // w
         fin[7] = mirror(fin[1]); // sw
-        String[] all = {"guerreiro_s", "guerreiro_se", "guerreiro_e", "guerreiro_ne", "guerreiro_n", "guerreiro_nw", "guerreiro_w", "guerreiro_sw"};
+        String[] all = {pre + "_s", pre + "_se", pre + "_e", pre + "_ne", pre + "_n", pre + "_nw", pre + "_w", pre + "_sw"};
         outRes.mkdirs();
         for (int i = 0; i < 8; i++) ImageIO.write(fin[i], "png", new File(outRes, all[i] + ".png"));
         int baseOut = (int) Math.round(base * sc);
