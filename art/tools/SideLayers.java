@@ -11,7 +11,8 @@ import java.io.File;
  * As áreas escondidas que aparecem ao girar (atrás do braço / sob a lâmina / topo das pernas sob a túnica)
  * são preenchidas copiando pixels vizinhos da mesma camada.
  * Todas as camadas têm o mesmo tamanho do sprite; parado, a remontagem é idêntica ao original.
- * Uso: java SideLayers.java <guerreiro_e.png> <pasta res> <pasta debug> [perfil=guerreiro|aprendiz]
+ * Uso: java SideLayers.java <guerreiro_e.png> <pasta res> <pasta debug> [perfil=guerreiro|aprendiz|mago]
+ * Perfil mago: mesmo esquema do aprendiz (uma perna), manto azul com barra dourada; o cajado é desenhado pelo jogo.
  * Perfil aprendiz: grava aprendiz_lado_*.png; a vista de lado só mostra uma perna, então a de trás é cópia da da frente.
  */
 public class SideLayers {
@@ -24,6 +25,8 @@ public class SideLayers {
     static int BLADE_Y = 336;
     /** Aprendiz: no polígono do braço, acima desta linha é manga (fica no corpo); túnica bege em vez de azul. */
     static boolean apr = false;
+    /** Mago: a túnica é o manto azul (barra dourada) em vez do bege. */
+    static boolean robe = false;
     static int SLEEVE_Y = 236;
     /** Aprendiz: faixa de colunas da perna; abaixo da túnica, fora dela, é corpo (barra da túnica atrás da lâmina). */
     static int LEG_X0 = 0, LEG_X1 = 9999;
@@ -55,9 +58,28 @@ public class SideLayers {
 
     static int splitX(int y) { return y < 372 ? 136 : 152; }
 
+    /** Medidas do mago (sprite 266x420): sem lâmina (o cajado é desenhado pelo jogo na mão). */
+    static void mago() {
+        apr = true;
+        robe = true;
+        HEM_Y = 350;
+        SHOULDER = new int[]{130, 240};
+        HIP_F = new int[]{140, 346};
+        HIP_B = new int[]{140, 346};
+        BLADE_Y = 9999;
+        SLEEVE_Y = 236;
+        LEG_X0 = 92;
+        LEG_X1 = 196;
+        ARM_POLY = new int[][]{
+                {106, 236}, {152, 236}, {154, 262}, {164, 280}, {164, 332}, {114, 332}, {110, 300}, {100, 262}
+        };
+        BLADE_POLY = new int[][]{{0, 0}, {1, 0}, {1, 1}};
+    }
+
     public static void main(String[] a) throws Exception {
         String pre = "";
         if (a.length > 3 && a[3].equals("aprendiz")) { aprendiz(); pre = "aprendiz_"; }
+        if (a.length > 3 && a[3].equals("mago")) { mago(); pre = "mago_"; }
         BufferedImage src0 = ImageIO.read(new File(a[0]));
         W = src0.getWidth();
         H = src0.getHeight();
@@ -158,6 +180,7 @@ public class SideLayers {
                 for (int k = x - 1; k >= Math.max(0, x - 60); k--) { int c = layer[y * W + k]; if (!hole[y * W + k] && (c >>> 24) > 200 && lum(c) > 45) { l = c; break; } }
                 for (int k = x + 1; k < Math.min(W, x + 60); k++) { int c = layer[y * W + k]; if (!hole[y * W + k] && (c >>> 24) > 200 && lum(c) > 45) { rr = c; break; } }
                 if (l != -1 && rr != -1) layer[i] = l;
+                else if (robe && (l != -1 || rr != -1)) layer[i] = l != -1 ? l : rr; // manto: basta um lado
             }
         }
     }
@@ -193,6 +216,7 @@ public class SideLayers {
     /** Túnica bege do aprendiz. */
     static boolean isTunic(int c) {
         int r = (c >> 16) & 255, g = (c >> 8) & 255, b = c & 255;
+        if (robe) return isBlue(c) || isGold(c);
         return lum(c) > 120 && g > 100 && r - b > 35 && r - b < 130 && r - g < 60;
     }
 

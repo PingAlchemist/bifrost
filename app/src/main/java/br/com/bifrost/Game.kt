@@ -2,9 +2,11 @@ package br.com.bifrost
 
 import org.json.JSONObject
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sign
+import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.random.Random
 
@@ -68,6 +70,11 @@ const val FX_BOLT = 2
 const val FX_SLASH = 3
 const val FX_RAIN = 4
 const val FX_FLASH = 5 // explosão branca de impacto sobre o monstro
+const val FX_FIREBOLT = 6 // bola de fogo de (x,y) até (x2,y2) com rastro
+const val FX_QUAKE = 7    // rachaduras no chão saindo do centro + anel de poeira
+const val FX_ICE = 8      // espinhos de gelo brotando em círculo
+const val FX_AURA = 9     // chamas subindo em volta do herói (Fúria)
+const val FX_SKYBOLT = 10 // raio do céu, grosso e ramificado (Tempestade)
 
 class Fx(val kind: Int, val x: Float, val y: Float, val x2: Float, val y2: Float, val r: Float, val cor: Int, var life: Float) {
     val max = life
@@ -192,6 +199,22 @@ class Game {
         private set
     var castSeq = 0
         private set
+    /** Última habilidade usada e direção (para a animação própria de cada uma). */
+    var castId = -1
+        private set
+    var castDirX = 1f
+        private set
+    var castDirY = 0f
+        private set
+    /** Herói parado executando a animação de uma habilidade. */
+    var skillT = 0f
+        private set
+
+    /** Efeitos e dano agendados para o instante do impacto da animação. */
+    private class Later(var t: Float, val fn: () -> Unit)
+    private val later = ArrayList<Later>()
+
+    private fun after(t: Float, fn: () -> Unit) { later.add(Later(t, fn)) }
     var atkScale = 1f
         private set
     var atkDirX = 1f
@@ -280,6 +303,15 @@ class Game {
         for (i in p.buff.indices) if (p.buff[i] > 0f) p.buff[i] -= dt
         p.recalc()
         atkT -= dt; castLock -= dt; potT -= dt; manualT -= dt
+        if (skillT > 0f) skillT -= dt
+        if (later.isNotEmpty()) {
+            var i = 0
+            while (i < later.size) {
+                val l = later[i]
+                l.t -= dt
+                if (l.t <= 0f) { later.removeAt(i); if (!dead) l.fn() } else i++
+            }
+        }
         atkAnim = max(0f, atkAnim - dt * 4f)
         lvlFx = max(0f, lvlFx - dt)
         if (hitStopT > 0f) hitStopT -= dt
@@ -356,6 +388,11 @@ class Game {
         target?.let { if (it.dead) { target = null; pendingSkill = -1 } }
         if (hstate == HS_ATK) {
             updateAttack(dt)
+            glideStop(dt)
+            moving = curSpeed > 6f
+            return
+        }
+        if (skillT > 0f) {
             glideStop(dt)
             moving = curSpeed > 6f
             return
@@ -640,8 +677,8 @@ class Game {
     /** Resultado do golpe no quadro de impacto (mesmas fórmulas de antes: acerto, crítico, dano). */
     private fun resolveAttack(m: Mob) {
         if (p.job.ranged) {
-            fx.add(Fx(FX_SHOT, px + face * 12f, py - 28f, m.x, m.y - m.d.size, 0f,
-                if (p.job.magic) col(0xFFB388FF) else col(0xFFFFF8E1), 0.16f))
+            fx.add(Fx(FX_SHOT, px + face * (if (p.job.magic) 26f else 12f), py - (if (p.job.magic) 62f else 28f), m.x, m.y - m.d.size,
+                if (p.job.magic) 1f else 0f, if (p.job.magic) col(0xFF90CAF9) else col(0xFFFFF8E1), 0.16f))
         } else {
             fx.add(Fx(FX_SLASH, m.x, m.y - m.d.size, 0f, 0f, m.d.size + 8f, col(0xCCFFFFFF), 0.15f))
         }
@@ -969,6 +1006,7 @@ class Game {
 
     private fun die() {
         dead = true
+        later.clear(); skillT = 0f
         target = null; pendingSkill = -1; hasDest = false; npcTarget = null
         // Aprendizes não perdem EXP ao morrer
         lastLoss = if (p.lv < 99 && p.job != Job.APRENDIZ) (expNeed(p.lv) * 0.01).toLong() else 0L
@@ -1148,6 +1186,15 @@ class Game {
         cd[id] = s.cd
         castLock = 0.4f
         atkAnim = 1f
+        castId = id
+        if (t != null) { castDirX = t.x - px; castDirY = t.y - py } else { castDirX = face; castDirY = 0f }
+        if (abs(castDirX) > 1f) face = sign(castDirX)
+        // habilidades com animação própria: herói parado até o fim do golpe
+        val hit = SpriteClips.SKILL_HIT[id]
+        if (hit > 0f) {
+            skillT = SpriteClips.SKILL[id]!!.dur * 0.85f
+            castLock = max(castLock, skillT)
+        }
         castSeq++
         atkT = max(atkT, 0.3f)
         texts.add(FText(px, py - 80f, "${s.nome}!!", s.cor, 1.0f, false))
@@ -1159,33 +1206,80 @@ class Game {
                 fx.add(Fx(FX_RING, px, py - 25f, 0f, 0f, 45f, col(0xCC69F0AE), 0.5f))
             }
             1 -> t?.let {
-                fx.add(Fx(FX_SLASH, it.x, it.y - it.d.size, 0f, 0f, it.d.size + 18f, s.cor, 0.25f))
-                dmgMob(it, reduce(p.atk * (1.5f + 0.3f * l) * vari(), it.d.def, false), false, C_ORANGE)
+                // Golpe Brutal: pancada de cima com rachaduras e pedrinhas no impacto
+                after(hit) {
+                    if (it.dead) return@after
+                    fx.add(Fx(FX_SLASH, it.x, it.y - it.d.size, 0f, 0f, it.d.size + 30f, s.cor, 0.3f))
+                    fx.add(Fx(FX_FLASH, it.x, it.y - it.d.size, 0f, 0f, it.d.size * 2.2f + 20f, C_WHITE, 0.3f))
+                    fx.add(Fx(FX_QUAKE, it.x, it.y, 0f, 0f, 60f, col(0xFF5D4037), 0.6f))
+                    burst(it.x, it.y, 14, col(0xFF8D6E63), 260f, 520f)
+                    shakeT = 0.2f
+                    vibrate(30)
+                    dmgMob(it, reduce(p.atk * (1.5f + 0.3f * l) * vari(), it.d.def, false), false, C_ORANGE)
+                }
             }
-            2 -> {
-                fx.add(Fx(FX_RING, px, py, 0f, 0f, s.radius, col(0xCCBCAAA4), 0.4f))
+            2 -> after(hit) {
+                // Impacto Sísmico: rachaduras em volta, ondas de choque e entulho voando
+                fx.add(Fx(FX_QUAKE, px, py, 0f, 0f, s.radius, col(0xFF4E342E), 0.8f))
+                fx.add(Fx(FX_RING, px, py, 0f, 0f, s.radius, col(0xCCBCAAA4), 0.45f))
+                fx.add(Fx(FX_RING, px, py, 0f, 0f, s.radius * 0.6f, col(0xCCD7CCC8), 0.3f))
+                burst(px, py, 26, col(0xFF8D6E63), 380f, 640f)
+                shakeT = 0.32f
+                vibrate(45)
                 areaDmg(px, py, s.radius, 1f + 0.2f * l, false)
             }
-            3, 9, 12 -> {
+            3 -> after(hit) {
+                // Fúria: aura de chamas e faíscas subindo
+                p.buff[id] = s.dur
+                fx.add(Fx(FX_AURA, px, py, 0f, 0f, 34f, s.cor, 0.9f))
+                fx.add(Fx(FX_RING, px, py - 25f, 0f, 0f, 60f, s.cor, 0.5f))
+                for (k in 0 until 16) parts.spawn(px + rnd.nextInt(-22, 22), py - rnd.nextInt(0, 50), rnd.nextInt(-30, 30).toFloat(),
+                    -(120f + rnd.nextFloat() * 140f), 0.6f + rnd.nextFloat() * 0.4f, 2f + rnd.nextFloat() * 2f, -60f,
+                    if (k % 3 == 0) C_YELLOW else col(0xFFFF7043))
+            }
+            9, 12 -> {
                 p.buff[id] = s.dur
                 fx.add(Fx(FX_RING, px, py - 25f, 0f, 0f, 55f, s.cor, 0.6f))
             }
             4 -> t?.let {
-                fx.add(Fx(FX_SHOT, px, py - 30f, it.x, it.y - it.d.size, 1f, s.cor, 0.2f))
-                fx.add(Fx(FX_RING, it.x, it.y - it.d.size, 0f, 0f, 30f, s.cor, 0.35f))
-                dmgMob(it, reduce(p.matk * (1.2f + 0.35f * l) * vari(), it.d.def, true), false, C_ORANGE)
+                // Seta de Fogo: sai da ponta do cajado, voa com rastro e explode no alvo
+                after(hit) {
+                    if (it.dead) return@after
+                    val sx = px + face * 26f
+                    val sy = py - 62f
+                    val travel = (dist(sx, sy, it.x, it.y) / 900f).coerceIn(0.12f, 0.35f)
+                    fx.add(Fx(FX_FIREBOLT, sx, sy, it.x, it.y - it.d.size, 16f, s.cor, travel))
+                    after(travel) {
+                        if (it.dead) return@after
+                        fx.add(Fx(FX_FLASH, it.x, it.y - it.d.size, 0f, 0f, it.d.size * 2f + 24f, col(0xFFFFCC80), 0.3f))
+                        fx.add(Fx(FX_RING, it.x, it.y, 0f, 0f, 48f, s.cor, 0.35f))
+                        burst(it.x, it.y - it.d.size, 16, col(0xFFFF9800), 240f, 300f)
+                        dmgMob(it, reduce(p.matk * (1.2f + 0.35f * l) * vari(), it.d.def, true), false, C_ORANGE)
+                    }
+                }
             }
             5 -> t?.let {
+                // Tempestade de Raios: quatro raios do céu em sequência; o dano sai no segundo
+                val cx = it.x
+                val cy = it.y
+                fx.add(Fx(FX_RING, cx, cy, 0f, 0f, s.radius, col(0x66FFEB3B), 0.9f))
                 for (k in 0 until 4) {
-                    val ox = rnd.nextInt(-60, 60).toFloat()
-                    val oy = rnd.nextInt(-40, 40).toFloat()
-                    fx.add(Fx(FX_BOLT, it.x + ox, it.y + oy, it.x + ox, it.y + oy, 0f, s.cor, 0.3f + k * 0.05f))
+                    val ox = if (k == 1) 0f else rnd.nextInt(-70, 70).toFloat()
+                    val oy = if (k == 1) 0f else rnd.nextInt(-40, 40).toFloat()
+                    after(hit + k * 0.15f) {
+                        fx.add(Fx(FX_SKYBOLT, cx + ox, cy + oy, 0f, 0f, 0f, s.cor, 0.3f))
+                        fx.add(Fx(FX_FLASH, cx + ox, cy + oy - 10f, 0f, 0f, 46f, col(0xFFFFF9C4), 0.2f))
+                        burst(cx + ox, cy + oy, 8, C_YELLOW, 200f, 200f)
+                        shakeT = 0.08f
+                        if (k == 1) areaDmg(cx, cy, s.radius, 1f + 0.25f * l, true)
+                    }
                 }
-                fx.add(Fx(FX_RING, it.x, it.y, 0f, 0f, s.radius, col(0x88FFEB3B), 0.4f))
-                areaDmg(it.x, it.y, s.radius, 1f + 0.25f * l, true)
             }
-            6 -> {
-                fx.add(Fx(FX_RING, px, py, 0f, 0f, s.radius, col(0xDD81D4FA), 0.5f))
+            6 -> after(hit) {
+                // Nova Gélida: o cajado crava no chão, anel de gelo e espinhos em volta; congela
+                fx.add(Fx(FX_RING, px, py, 0f, 0f, s.radius, col(0xDD81D4FA), 0.55f))
+                fx.add(Fx(FX_ICE, px, py, 0f, 0f, s.radius, col(0xFFB3E5FC), 0.9f))
+                burst(px, py, 22, col(0xFFE1F5FE), 320f, 120f)
                 val fr = 1.5f + 0.25f * l
                 for (i in mobs.indices) {
                     val m = mobs[i]
@@ -1217,6 +1311,17 @@ class Game {
                 fx.add(Fx(FX_RING, px, py, 0f, 0f, s.radius, col(0x99CFD8DC), 0.3f))
                 areaDmg(px, py, s.radius, 0.9f + 0.18f * l, false)
             }
+        }
+    }
+
+    /** Estouro de partículas no chão (entulho, brasas, gelo): sobem e caem com gravidade g. */
+    private fun burst(x: Float, y: Float, n: Int, cor: Int, speed: Float, g: Float) {
+        if (!p.fx) return
+        for (k in 0 until n) {
+            val a = rnd.nextFloat() * 6.283f
+            val v = speed * (0.4f + rnd.nextFloat() * 0.6f)
+            parts.spawn(x + cos(a) * 8f, y - 6f, cos(a) * v, -abs(sin(a)) * v * 0.9f - 60f,
+                0.4f + rnd.nextFloat() * 0.35f, 2f + rnd.nextFloat() * 2.5f, g, if (k % 4 == 0) C_WHITE else cor)
         }
     }
 
@@ -1440,6 +1545,7 @@ class Game {
         map = MAPS[id]
         p.map = id
         mobs.clear(); texts.clear(); fx.clear(); parts.clear()
+        later.clear(); skillT = 0f // golpes agendados não atravessam a troca de mapa
         for (d in drops) d.on = false
         heroQueue.clear()
         hstate = HS_IDLE

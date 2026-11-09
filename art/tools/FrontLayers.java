@@ -9,7 +9,7 @@ import java.io.File;
  * Vistas frente / 3/4 frente / 3/4 costas / costas: separa as duas pernas logo abaixo da barra da túnica
  * (perna esquerda e direita) e deixa o resto como camada do corpo (sem as pernas, para não desenhar em dobro).
  * A espada continua no corpo (polígono por vista).
- * Uso: java FrontLayers.java <pasta res> <pasta debug> [perfil=guerreiro|aprendiz]
+ * Uso: java FrontLayers.java <pasta res> <pasta debug> [perfil=guerreiro|aprendiz|mago]
  * Perfil aprendiz: lê aprendiz_*.png, grava aprendiz_frente_*.png (túnica bege, mãos de pele em vez de guarda dourada).
  */
 public class FrontLayers {
@@ -36,11 +36,20 @@ public class FrontLayers {
             new View("ne", 62, 200, 126, new int[][]{{176, 316}, {232, 298}, {238, 318}, {224, 330}, {254, 412}, {238, 420}, {194, 336}, {180, 332}}),
             new View("n", 62, 200, 130, new int[][]{{180, 312}, {236, 294}, {242, 314}, {228, 326}, {258, 410}, {244, 420}, {198, 336}, {184, 330}}),
     };
+    /** Mago (sprite 266x420): sem lâmina; manto azul com barra dourada. */
+    static final View[] VIEWS_MAGO = {
+            new View("s", 70, 210, 130, new int[][]{{0, 0}, {1, 0}, {1, 1}}),
+            new View("se", 78, 220, 142, new int[][]{{0, 0}, {1, 0}, {1, 1}}),
+            new View("ne", 85, 210, 140, new int[][]{{0, 0}, {1, 0}, {1, 1}}),
+            new View("n", 75, 205, 140, new int[][]{{0, 0}, {1, 0}, {1, 1}}),
+    };
     static boolean apr = false;
+    static boolean robe = false;
 
     public static void main(String[] a) throws Exception {
         String pre = "guerreiro_", outPre = "";
         if (a.length > 2 && a[2].equals("aprendiz")) { apr = true; VIEWS = VIEWS_APR; pre = "aprendiz_"; outPre = "aprendiz_"; }
+        if (a.length > 2 && a[2].equals("mago")) { apr = true; robe = true; VIEWS = VIEWS_MAGO; pre = "mago_"; outPre = "mago_"; }
         File res = new File(a[0]);
         File dbg = new File(a[1]);
         dbg.mkdirs();
@@ -72,7 +81,7 @@ public class FrontLayers {
             java.util.List<Integer> hems = new java.util.ArrayList<>();
             for (int x = 0; x < W; x++) {
                 int b = -1;
-                for (int y = apr ? 270 : 280; y < (apr ? 336 : 352); y++) {
+                for (int y = robe ? 296 : apr ? 270 : 280; y < (robe ? 372 : apr ? 336 : 352); y++) {
                     int c = s[y * W + x];
                     if ((c >>> 24) < 128 || blade.contains(x + 0.5, y + 0.5)) continue;
                     if (apr ? isTunic(c) : isBlue(c) || isLight(c)) b = Math.max(b, y);
@@ -180,6 +189,7 @@ public class FrontLayers {
     /** Túnica bege do aprendiz. */
     static boolean isTunic(int c) {
         int r = (c >> 16) & 255, g = (c >> 8) & 255, b = c & 255;
+        if (robe) return isBlue(c) || isGold(c);
         return lum(c) > 120 && g > 100 && r - b > 35 && r - b < 130 && r - g < 60;
     }
 

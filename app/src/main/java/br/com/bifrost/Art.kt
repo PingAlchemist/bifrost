@@ -1267,6 +1267,89 @@ object SpriteClips {
         Track(CH_SY, f(0f, 0.40f, 0.50f, 0.80f, 1f), f(1f, 0.97f, 0.93f, 0.95f, 1f)),
     ))
 
+    /**
+     * Mago, ataque básico (mesma linha do tempo do ATTACK: impacto em 0,5): ergue o cajado (0–0,40) e aponta para o
+     * alvo (0,40–0,50; o projétil sai aqui), segura e volta. CH_WEAPON gira o cajado na mão (cajado = braço + arma).
+     */
+    val ATTACK_STAFF = Clip("Ataque (cajado)", 1.0f, false, arrayOf(
+        Track(CH_HAND_F, f(0f, 0.40f, 0.50f, 0.80f, 1f), f(0f, -120f, -75f, -70f, 0f)),
+        Track(CH_WEAPON, f(0f, 0.40f, 0.50f, 0.80f, 1f), f(0f, 150f, 165f, 160f, 0f)),
+        Track(CH_LEAN, f(0f, 0.40f, 0.50f, 0.80f, 1f), f(0f, -6f, 8f, 6f, 0f)),
+        Track(CH_X, f(0f, 0.40f, 0.50f, 0.80f, 1f), f(0f, -2f, 6f, 5f, 0f)),
+        Track(CH_SIT, f(0f, 0.40f, 0.50f, 0.80f, 1f), f(0f, 1f, 4f, 3f, 0f)),
+    ))
+
+    // ---------- habilidades (impacto/soltura no tempo indicado; Game aplica o dano no mesmo instante) ----------
+
+    /** Golpe Brutal (0,9s, impacto 0,42s): pulinho erguendo a espada bem alto e pancada de cima para baixo. */
+    val GOLPE_BRUTAL = Clip("Golpe Brutal", 0.9f, false, arrayOf(
+        Track(CH_HAND_F, f(0f, 0.36f, 0.47f, 0.75f, 1f), f(0f, 175f, -95f, -88f, 0f)),
+        Track(CH_Y, f(0f, 0.36f, 0.47f, 1f), f(0f, -10f, 0f, 0f)),
+        Track(CH_SIT, f(0f, 0.36f, 0.47f, 0.75f, 1f), f(0f, 1f, 10f, 8f, 0f)),
+        Track(CH_LEAN, f(0f, 0.36f, 0.47f, 0.75f, 1f), f(0f, -14f, 16f, 12f, 0f)),
+        Track(CH_X, f(0f, 0.36f, 0.47f, 0.75f, 1f), f(0f, -4f, 14f, 12f, 0f)),
+        Track(CH_LEG_F, f(0f, 0.36f, 0.47f, 0.75f, 1f), f(0f, 8f, -28f, -25f, 0f)),
+        Track(CH_LEG_B, f(0f, 0.36f, 0.47f, 0.75f, 1f), f(0f, -8f, 20f, 18f, 0f)),
+        Track(CH_SX, f(0f, 0.36f, 0.47f, 0.75f, 1f), f(1f, 1.02f, 1.08f, 1.05f, 1f)),
+        Track(CH_SY, f(0f, 0.36f, 0.47f, 0.75f, 1f), f(1f, 0.98f, 0.9f, 0.94f, 1f)),
+    ))
+
+    /** Impacto Sísmico (0,8s, impacto 0,48s): agacha, salta com a espada no alto e cai cravando no chão. */
+    val SISMICO = Clip("Impacto Sísmico", 0.8f, false, arrayOf(
+        Track(CH_SIT, f(0f, 0.22f, 0.5f, 0.6f, 0.8f, 1f), f(0f, 8f, 0f, 12f, 10f, 0f)),
+        Track(CH_Y, f(0f, 0.22f, 0.5f, 0.6f, 1f), f(0f, 0f, -34f, 0f, 0f)),
+        Track(CH_HAND_F, f(0f, 0.22f, 0.5f, 0.6f, 0.8f, 1f), f(0f, 20f, 170f, -100f, -95f, 0f)),
+        Track(CH_LEG_F, f(0f, 0.22f, 0.5f, 0.6f, 0.8f, 1f), f(0f, 0f, 18f, -20f, -18f, 0f)),
+        Track(CH_LEG_B, f(0f, 0.22f, 0.5f, 0.6f, 0.8f, 1f), f(0f, 0f, -14f, 16f, 14f, 0f)),
+        Track(CH_SY, f(0f, 0.22f, 0.5f, 0.6f, 0.8f, 1f), f(1f, 0.92f, 1.08f, 0.88f, 0.92f, 1f)),
+        Track(CH_SX, f(0f, 0.22f, 0.5f, 0.6f, 0.8f, 1f), f(1f, 1.06f, 0.95f, 1.1f, 1.06f, 1f)),
+    ))
+
+    /** Fúria (0,7s, explosão 0,30s): encolhe concentrando e se ergue com a espada para o alto. */
+    val FURIA = Clip("Fúria", 0.7f, false, arrayOf(
+        Track(CH_SIT, f(0f, 0.3f, 0.43f, 1f), f(0f, 7f, 0f, 0f)),
+        Track(CH_SY, f(0f, 0.3f, 0.43f, 0.7f, 1f), f(1f, 0.9f, 1.1f, 1.04f, 1f)),
+        Track(CH_SX, f(0f, 0.3f, 0.43f, 0.7f, 1f), f(1f, 1.06f, 0.96f, 1f, 1f)),
+        Track(CH_HAND_F, f(0f, 0.3f, 0.43f, 0.7f, 1f), f(0f, -30f, 160f, 150f, 0f)),
+        Track(CH_HEAD, f(0f, 0.3f, 0.43f, 0.7f, 1f), f(0f, 6f, -10f, -8f, 0f)),
+        Track(CH_Y, f(0f, 0.3f, 0.43f, 0.7f, 1f), f(0f, 0f, -6f, -3f, 0f)),
+    ))
+
+    /** Seta de Fogo (0,7s, disparo 0,36s): ergue o cajado carregando fogo e aponta para o alvo. */
+    val SETA_FOGO = Clip("Seta de Fogo", 0.7f, false, arrayOf(
+        Track(CH_HAND_F, f(0f, 0.43f, 0.52f, 0.8f, 1f), f(0f, -150f, -80f, -78f, 0f)),
+        Track(CH_WEAPON, f(0f, 0.43f, 0.52f, 0.8f, 1f), f(0f, 150f, 170f, 168f, 0f)),
+        Track(CH_LEAN, f(0f, 0.43f, 0.52f, 0.8f, 1f), f(0f, -8f, 10f, 8f, 0f)),
+        Track(CH_X, f(0f, 0.43f, 0.52f, 0.8f, 1f), f(0f, -3f, 8f, 7f, 0f)),
+        Track(CH_SY, f(0f, 0.43f, 0.52f, 0.8f, 1f), f(1f, 1.03f, 0.96f, 0.97f, 1f)),
+    ))
+
+    /** Tempestade de Raios (1,0s, raios de 0,35s a 0,8s): cajado erguido acima da cabeça, olhando para o céu. */
+    val TEMPESTADE = Clip("Tempestade de Raios", 1.0f, false, arrayOf(
+        Track(CH_HAND_F, f(0f, 0.3f, 0.8f, 1f), f(0f, -170f, -170f, 0f)),
+        Track(CH_WEAPON, f(0f, 0.3f, 0.8f, 1f), f(0f, 170f, 170f, 0f)),
+        Track(CH_Y, f(0f, 0.3f, 0.8f, 1f), f(0f, -6f, -6f, 0f)),
+        Track(CH_SY, f(0f, 0.3f, 0.8f, 1f), f(1f, 1.04f, 1.04f, 1f)),
+        Track(CH_HEAD, f(0f, 0.3f, 0.8f, 1f), f(0f, -6f, -6f, 0f)),
+    ))
+
+    /** Nova Gélida (0,8s, impacto 0,40s): ergue o cajado e crava a ponta no chão à frente. */
+    val NOVA = Clip("Nova Gélida", 0.8f, false, arrayOf(
+        Track(CH_HAND_F, f(0f, 0.38f, 0.5f, 0.75f, 1f), f(0f, -160f, -60f, -60f, 0f)),
+        Track(CH_WEAPON, f(0f, 0.38f, 0.5f, 0.75f, 1f), f(0f, 160f, 60f, 60f, 0f)),
+        Track(CH_SIT, f(0f, 0.38f, 0.5f, 0.75f, 1f), f(0f, 0f, 10f, 8f, 0f)),
+        Track(CH_Y, f(0f, 0.38f, 0.5f, 1f), f(0f, -8f, 0f, 0f)),
+        Track(CH_LEAN, f(0f, 0.38f, 0.5f, 0.75f, 1f), f(0f, -6f, 10f, 8f, 0f)),
+    ))
+
+    /** Clipe de cada habilidade (null = conjurar genérico) e o instante em que ela solta/acerta (s). */
+    val SKILL = arrayOfNulls<Clip>(13).also {
+        it[1] = GOLPE_BRUTAL; it[2] = SISMICO; it[3] = FURIA; it[4] = SETA_FOGO; it[5] = TEMPESTADE; it[6] = NOVA
+    }
+    val SKILL_HIT = floatArrayOf(0f, 0.42f, 0.48f, 0.30f, 0.36f, 0.35f, 0.40f, 0f, 0f, 0f, 0f, 0f, 0f)
+    /** Brilho na ponta do cajado durante a carga (por habilidade; 0 = sem brilho). */
+    val SKILL_GLOW = intArrayOf(0, 0, 0, 0, col(0xFFFF7043), col(0xFFFFEB3B), col(0xFF80DEEA), 0, 0, 0, 0, 0, 0)
+
     /** Recuo para trás com leve achatada (o flash e a tremida são procedurais). */
     val HURT = Clip("Dano", 0.32f, false, arrayOf(
         Track(CH_X, f(0f, 0.2f, 1f), f(0f, -7f, 0f)),
@@ -1533,6 +1616,12 @@ class SpriteSkin(
     val hipFX: Float, val hipFY: Float, val hipBX: Float, val hipBY: Float, val shoulderX: Float, val shoulderY: Float,
     /** Por vista (0 = frente, 1 = 3/4 frente, 2 = 3/4 costas, 3 = costas): quadril e centro de cada perna. */
     val fHipY: FloatArray, val fLegL: FloatArray, val fLegR: FloatArray,
+    /** Arma separada desenhada na mão (0 = nenhuma, a arma já está no sprite). */
+    val staffId: Int = 0,
+    /** Por vista base (0 frente, 1 3/4 frente, 2 lado, 3 3/4 costas, 4 costas): mão que segura e inclinação (graus). */
+    val handX: FloatArray = FloatArray(5), val handY: FloatArray = FloatArray(5), val staffTilt: FloatArray = FloatArray(5),
+    /** Ponto do PNG da arma que fica na mão. */
+    val gripX: Float = 0f, val gripY: Float = 0f,
 )
 
 class SpriteHero(private val res: Resources, private val art: Art) {
@@ -1566,6 +1655,30 @@ class SpriteHero(private val res: Resources, private val art: Art) {
             fLegL = floatArrayOf(93f, 103f, 92f, 90f),
             fLegR = floatArrayOf(161f, 165f, 157f, 158f),
         )
+        /** Mago: folha art/source/mago_sheet.png (sprite 266x420) + cajado (mago_cajado.png) na mão. */
+        val MAGO = SpriteSkin(
+            intArrayOf(
+                R.drawable.mago_s, R.drawable.mago_se, R.drawable.mago_e, R.drawable.mago_ne,
+                R.drawable.mago_n, R.drawable.mago_nw, R.drawable.mago_w, R.drawable.mago_sw
+            ),
+            intArrayOf(R.drawable.mago_lado_corpo, R.drawable.mago_lado_braco, R.drawable.mago_lado_perna_f, R.drawable.mago_lado_perna_t),
+            intArrayOf(
+                R.drawable.mago_frente_s_corpo, R.drawable.mago_frente_s_perna_e, R.drawable.mago_frente_s_perna_d,
+                R.drawable.mago_frente_se_corpo, R.drawable.mago_frente_se_perna_e, R.drawable.mago_frente_se_perna_d,
+                R.drawable.mago_frente_ne_corpo, R.drawable.mago_frente_ne_perna_e, R.drawable.mago_frente_ne_perna_d,
+                R.drawable.mago_frente_n_corpo, R.drawable.mago_frente_n_perna_e, R.drawable.mago_frente_n_perna_d
+            ),
+            anchorX = 133f, baseY = 418f,
+            hipFX = 140f, hipFY = 346f, hipBX = 140f, hipBY = 346f, shoulderX = 130f, shoulderY = 240f,
+            fHipY = floatArrayOf(379f, 377f, 378f, 378f),
+            fLegL = floatArrayOf(101f, 113f, 114f, 103f),
+            fLegR = floatArrayOf(168f, 178f, 175f, 168f),
+            staffId = R.drawable.mago_cajado,
+            handX = floatArrayOf(69f, 86f, 138f, 210f, 201f),
+            handY = floatArrayOf(300f, 300f, 305f, 305f, 300f),
+            staffTilt = floatArrayOf(-8f, -8f, 12f, 8f, 8f),
+            gripX = 36f, gripY = 95f,
+        )
         /** Aprendiz: folha art/source/aprendiz_sheet.png (sprite 262x420); de lado a perna de trás é cópia da da frente. */
         val APRENDIZ = SpriteSkin(
             intArrayOf(
@@ -1591,6 +1704,10 @@ class SpriteHero(private val res: Resources, private val art: Art) {
         /** direção -> vista (-1 = lado) e se é espelhada */
         private val VIEW_OF = intArrayOf(0, 1, -1, 2, 3, 2, -1, 1)
         private val MIRROR_OF = booleanArrayOf(false, false, false, false, false, true, true, true)
+        /** direção -> vista base (0 S, 1 SE, 2 E, 3 NE, 4 N) desenhada espelhada nas direções da esquerda */
+        private val BASE_OF = intArrayOf(0, 1, 2, 3, 4, 3, 2, 1)
+        /** vista do andar de frente (0 frente, 1 3/4 frente, 2 3/4 costas, 3 costas) -> vista base */
+        private val FRONT_BASE = intArrayOf(0, 1, 3, 4)
         const val F_LIFT = 14f      // px do sprite (~3-4px na tela)
         const val F_SHORT = 0.10f  // encurta para 0,92 no pico
         const val F_ADV = 6f        // 3/4: a perna levantada avança (~1-2px na tela)
@@ -1626,6 +1743,7 @@ class SpriteHero(private val res: Resources, private val art: Art) {
     var skin = GUERREIRO
     private var loaded: SpriteSkin? = null
     private val bmps = arrayOfNulls<Bitmap>(8)
+    private var staffBmp: Bitmap? = null
     private val side = arrayOfNulls<Bitmap>(4)
     private val front = arrayOfNulls<Bitmap>(12)
     private var lastSinSign = 1f
@@ -1645,7 +1763,10 @@ class SpriteHero(private val res: Resources, private val art: Art) {
     private val dust = Particles(48)
     private val rnd = kotlin.random.Random(11)
     var dir = S
-    private var oneShot = 0 // 0 nenhum, 1 ataque, 2 dano, 3 conjurar
+    private var oneShot = 0 // 0 nenhum, 1 ataque, 2 dano, 3 conjurar, 4 habilidade (pose de lado)
+    /** Brilho na ponta do cajado: cor e instante (tempo do clipe) em que a carga solta. */
+    private var glowCol = 0
+    private var glowEnd = 0f
     private var hitStop = 0f
     private var hitDone = false
     private var flash = 0f
@@ -1662,6 +1783,7 @@ class SpriteHero(private val res: Resources, private val art: Art) {
         for (i in 0 until 8) bmps[i] = BitmapFactory.decodeResource(res, skin.ids[i], o)
         for (i in 0 until 4) side[i] = BitmapFactory.decodeResource(res, skin.sideIds[i], o)
         for (i in 0 until 12) front[i] = BitmapFactory.decodeResource(res, skin.frontIds[i], o)
+        staffBmp = if (skin.staffId != 0) BitmapFactory.decodeResource(res, skin.staffId, o) else null
     }
 
     private var atkScale = 1f
@@ -1674,7 +1796,10 @@ class SpriteHero(private val res: Resources, private val art: Art) {
      * O impacto do desenho coincide com o impacto do jogo (0,2s × scale).
      */
     fun attack(scale: Float = 1f, dx: Float = FX[dir], dy: Float = FY[dir], dist: Float = 40f) {
-        anim.play(SpriteClips.ATTACK, true, 0.04f)
+        val staffSkin = skin.staffId != 0
+        anim.play(if (staffSkin) SpriteClips.ATTACK_STAFF else SpriteClips.ATTACK, true, 0.04f)
+        glowCol = if (staffSkin) col(0xFF90CAF9) else 0
+        glowEnd = ATK_IMPACT
         oneShot = 1
         hitDone = false
         atkScale = scale.coerceIn(0.3f, 1f)
@@ -1697,6 +1822,20 @@ class SpriteHero(private val res: Resources, private val art: Art) {
         anim.play(SpriteClips.CAST, true, 0.06f)
         oneShot = 3
         castT = SpriteClips.CAST.dur
+    }
+
+    /** Habilidade com animação própria (de lado, virado para dx); as sem clipe usam o conjurar genérico. */
+    fun skill(id: Int, dx: Float, dy: Float) {
+        val clip = SpriteClips.SKILL.getOrNull(id) ?: return cast()
+        anim.play(clip, true, 0.05f)
+        oneShot = 4
+        val len = max(0.001f, kotlin.math.sqrt(dx * dx + dy * dy))
+        atkDx = dx / len
+        atkDy = dy / len
+        glowCol = if (skin.staffId != 0) SpriteClips.SKILL_GLOW[id] else 0
+        glowEnd = SpriteClips.SKILL_HIT[id]
+        // magias: círculo mágico nos pés durante a carga
+        if (glowCol != 0) castT = SpriteClips.SKILL_HIT[id] + 0.25f
     }
 
     /**
@@ -1775,7 +1914,7 @@ class SpriteHero(private val res: Resources, private val art: Art) {
         if (hurtT > 0f) ox += sin(hurtT * 90f) * 2f * (hurtT / 0.3f) * sc
         val lean = if (abs(mx) > 0.3f) p[CH_LEAN] * sign(mx) else 0f
         // ataque: sempre de lado (esquerda/direita pelo alvo), com o braço da espada animado
-        val atkRig = oneShot == 1
+        val atkRig = oneShot == 1 || oneShot == 4
         val sideRig = !atkRig && w > 0.01f && oneShot == 0 && (d == E || d == W)
         val frontRig = !atkRig && w > 0.01f && oneShot == 0 && !sideRig
         var tilt = p[CH_HEAD] + lean
@@ -1795,7 +1934,7 @@ class SpriteHero(private val res: Resources, private val art: Art) {
         if (atkRig) {
             c.scale(sx * k * (if (atkDx < 0f) -1f else 1f), sy * k)
             c.translate(-skin.anchorX, -skin.baseY)
-            drawSidePose(c, p[CH_LEG_F], p[CH_LEG_B], 0f, 0f, p[CH_HAND_F], p[CH_SIT], 0)
+            drawSidePose(c, p[CH_LEG_F], p[CH_LEG_B], 0f, 0f, p[CH_HAND_F], p[CH_SIT], 0, p[CH_WEAPON], glow())
         } else if (sideRig) {
             c.scale(sx * k * (if (d == W) -1f else 1f), sy * k)
             c.translate(-skin.anchorX, -skin.baseY + BODY_DROP * w * abs(s))
@@ -1804,6 +1943,24 @@ class SpriteHero(private val res: Resources, private val art: Art) {
             c.scale(sx * k * (if (MIRROR_OF[d]) -1f else 1f), sy * k)
             c.translate(-skin.anchorX, -skin.baseY)
             drawFrontRig(c, VIEW_OF[d], s, w)
+        } else if (staffBmp != null && (d == E || d == W)) {
+            // de lado parado: mesma montagem do andar (cajado entre o corpo e o braço)
+            c.scale(sx * k * (if (d == W) -1f else 1f), sy * k)
+            c.translate(-skin.anchorX, -skin.baseY)
+            drawSidePose(c, 0f, 0f, 0f, 0f, 0f, 0f, 0)
+        } else if (staffBmp != null) {
+            val v = BASE_OF[d]
+            val bmp = bmps[v]
+            if (bmp != null) {
+                c.scale(sx * k * (if (d >= NW) -1f else 1f), sy * k)
+                c.translate(-skin.anchorX, -skin.baseY)
+                staff(c, v, 0f, 0f) // atrás do corpo: o punho fica por cima
+                c.drawBitmap(bmp, 0f, 0f, paint)
+                if (flash > 0f) {
+                    flashPaint.alpha = (flash / 0.15f * 210).toInt().coerceIn(0, 255)
+                    c.drawBitmap(bmp, 0f, 0f, flashPaint)
+                }
+            }
         } else {
             val bmp = bmps[d]
             if (bmp != null) {
@@ -1816,7 +1973,7 @@ class SpriteHero(private val res: Resources, private val art: Art) {
             }
         }
         c.restore()
-        if (oneShot == 1) trail(c, x + ox, y + oy, sc)
+        if (oneShot == 1 && staffBmp == null) trail(c, x + ox, y + oy, sc)
     }
 
     /**
@@ -1861,7 +2018,17 @@ class SpriteHero(private val res: Resources, private val art: Art) {
     }
 
     /** Pose de lado por partes: pernas (ângulo/elevação), braço da espada (ângulo) e agachamento do corpo (px). */
-    private fun drawSidePose(c: Canvas, angF: Float, angB: Float, liftF: Float, liftB: Float, armAng: Float, crouch: Float, darkLv: Int) {
+    /** Intensidade do brilho do cajado: cresce até a soltura e some em 0,2s. */
+    private fun glow(): Float {
+        if (glowCol == 0 || (oneShot != 1 && oneShot != 4)) return 0f
+        val t = anim.time
+        return if (t < glowEnd) t / max(0.01f, glowEnd) else max(0f, 1f - (t - glowEnd) / 0.2f)
+    }
+
+    private fun drawSidePose(
+        c: Canvas, angF: Float, angB: Float, liftF: Float, liftB: Float, armAng: Float, crouch: Float, darkLv: Int,
+        weaponAng: Float = 0f, glowK: Float = 0f
+    ) {
         val body = side[0] ?: return
         val arm = side[1] ?: return
         val legF = side[2] ?: return
@@ -1871,6 +2038,13 @@ class SpriteHero(private val res: Resources, private val art: Art) {
         c.save()
         c.translate(0f, crouch)
         c.drawBitmap(body, 0f, 0f, paint)
+        if (staffBmp != null) {
+            c.save()
+            c.rotate(armAng, skin.shoulderX, skin.shoulderY)
+            c.rotate(weaponAng, skin.handX[2], skin.handY[2])
+            staff(c, 2, 0f, 0f, glowK)
+            c.restore()
+        }
         part(c, arm, skin.shoulderX, skin.shoulderY, armAng, 0f, paint)
         c.restore()
     }
@@ -1889,6 +2063,7 @@ class SpriteHero(private val res: Resources, private val art: Art) {
         val adv = if (v == 1 || v == 2) F_ADV else 0f
         frontLeg(c, legL, skin.fLegL[v], skin.fHipY[v], liftL, adv)
         frontLeg(c, legR, skin.fLegR[v], skin.fHipY[v], liftR, adv)
+        staff(c, FRONT_BASE[v], F_SWAY * s * w, -F_RISE * abs(s) * w)
         c.drawBitmap(body, F_SWAY * s * w, -F_RISE * abs(s) * w, paint)
     }
 
@@ -1897,6 +2072,28 @@ class SpriteHero(private val res: Resources, private val art: Art) {
         c.translate(adv * lift, -F_LIFT * lift)
         c.scale(1f, 1f - F_SHORT * lift, cx, hipY)
         c.drawBitmap(b, 0f, 0f, paint)
+        c.restore()
+    }
+
+    /** Arma separada (cajado) na mão da vista base v, em espaço do sprite; dx/dy acompanham o corpo. */
+    private fun staff(c: Canvas, v: Int, dx: Float, dy: Float, glowK: Float = 0f) {
+        val b = staffBmp ?: return
+        c.save()
+        c.translate(skin.handX[v] + dx, skin.handY[v] + dy)
+        c.rotate(skin.staffTilt[v])
+        c.drawBitmap(b, -skin.gripX, -skin.gripY, paint)
+        if (glowK > 0f) {
+            // carga na pedra do cajado: halo colorido pulsando + núcleo branco
+            val tx = b.width / 2f - skin.gripX
+            val ty = b.height * 0.1f - skin.gripY
+            val pulse = 1f + 0.12f * sin(anim.time * 40f)
+            fill.color = art.alpha(glowCol, (glowK * 120).toInt())
+            c.drawCircle(tx, ty, 46f * glowK * pulse, fill)
+            fill.color = art.alpha(glowCol, (glowK * 200).toInt())
+            c.drawCircle(tx, ty, 26f * glowK * pulse, fill)
+            fill.color = art.alpha(Color.WHITE, (glowK * 230).toInt())
+            c.drawCircle(tx, ty, 12f * glowK, fill)
+        }
         c.restore()
     }
 

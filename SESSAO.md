@@ -36,6 +36,15 @@ emulador NÃO roda aqui (virtualização desligada na BIOS) — testar no celula
 - **Fluxo**: tudo direto na `main`; todo deploy = push + `Bifrost.apk`. APK deve ser assinado com a
   `debug.keystore` do outro PC (copiar para `C:\Users\Diego\.android\`) para atualizar no celular sem perder o save.
 
+- **Mago em sprites** (v1.2.0): `art/source/mago_sheet.png` (de `art/personagens/mage/`), perfil `mago` em
+  SpriteTool/SideLayers/FrontLayers; cajado separado (`mago_cajado.png`) desenhado na mão (`SpriteSkin.staffId`,
+  `handX/handY/staffTilt`, canal `CH_WEAPON` gira o cajado na mão).
+- **Animação própria por habilidade** (Guerreiro e Mago): clipes em `SpriteClips` (GOLPE_BRUTAL, SISMICO, FURIA,
+  SETA_FOGO, TEMPESTADE, NOVA, ATTACK_STAFF); `SKILL_HIT` = instante do impacto, e `Game.cast` aplica dano/efeitos
+  nesse instante (`after`). Efeitos novos: FX_FIREBOLT, FX_QUAKE, FX_ICE, FX_AURA, FX_SKYBOLT. Botão Anim mostra as
+  habilidades da classe. Próximo: Caçador, Ladino e Aprendiz (Primeiros Socorros ainda usa o conjurar genérico).
+- **Versão** visível na tela inicial/seleção (`VERSAO` em Defs.kt + versionCode/versionName): aumentar a cada entrega.
+
 ## Pendente / combinado
 - **EXP e drop 15x para testes**: `EXP_RATE = 15f` e `DROP_RATE = 15f` em `Defs.kt` — voltar para `1f` depois.
 - Usuário vai mandar print/vídeo da floresta integrada e do combate novo para próximos ajustes.

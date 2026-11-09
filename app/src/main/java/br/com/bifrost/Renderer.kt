@@ -274,7 +274,7 @@ class Renderer(private val g: Game, private val res: Resources) {
             items[i] = null
         }
         deadT = if (g.dead) deadT + frameDt else 0f
-        if (g.dead && fx && (g.p.job == Job.GUERREIRO || g.p.job == Job.APRENDIZ)) {
+        if (g.dead && fx && hasSprite(g.p.job)) {
             spriteHero.skin = skinOf(g.p.job)
             spriteHero.drawDead(c, g.px, g.py, Style.CHAR_SCALE, deadT)
         } else if (g.dead) {
@@ -527,7 +527,7 @@ class Renderer(private val g: Game, private val res: Resources) {
         }
         val weapon = if (p.job == Job.APRENDIZ || p.job == Job.LADINO) 0 else p.job.weaponCat
         if (fx) {
-            if (p.job == Job.GUERREIRO || p.job == Job.APRENDIZ) drawSpriteHero(c) else drawHeroRig(c)
+            if (hasSprite(p.job)) drawSpriteHero(c) else drawHeroRig(c)
             return
         }
         art.hero(c, g.px, g.py, g.face, p.job.cor, p.job.cabelo, p.job.hat, weapon, g.walk, g.moving, g.atkAnim, Style.CHAR_SCALE, 0f)
@@ -589,8 +589,14 @@ class Renderer(private val g: Game, private val res: Resources) {
     private var spDir = SpriteHero.S
     private var deadT = 0f
 
-    /** Visual em sprites da classe (só Aprendiz e Guerreiro têm sprites). */
-    private fun skinOf(job: Job) = if (job == Job.APRENDIZ) SpriteHero.APRENDIZ else SpriteHero.GUERREIRO
+    /** Classes com visual em sprites (as outras usam o boneco desenhado em código). */
+    private fun hasSprite(job: Job) = job == Job.APRENDIZ || job == Job.GUERREIRO || job == Job.MAGO
+
+    private fun skinOf(job: Job) = when (job) {
+        Job.APRENDIZ -> SpriteHero.APRENDIZ
+        Job.MAGO -> SpriteHero.MAGO
+        else -> SpriteHero.GUERREIRO
+    }
     private var prevAtkSeq = -1
     private var prevCastSeq = -1
     private var prevHp = -1
@@ -624,6 +630,7 @@ class Renderer(private val g: Game, private val res: Resources) {
         val t = g.target
         // posicionando/atacando: vira de lado para o alvo (o golpe é feito de lado, com o braço da espada)
         if (g.hstate == HS_ATK) { wx = if (g.atkDirX >= 0f) 1f else -1f; wy = 0f }
+        else if (g.skillT > 0f) { wx = if (g.castDirX >= 0f) 1f else -1f; wy = 0f }
         else if (g.hstate == HS_POS && t != null) { wx = if (t.x >= g.px) 1f else -1f; wy = 0f }
         else if (g.moving && vx * vx + vy * vy > 225f) { wx = vx; wy = vy }
         else if (t != null) { wx = t.x - g.px; wy = t.y - g.py }
@@ -657,7 +664,7 @@ class Renderer(private val g: Game, private val res: Resources) {
         }
         if (g.castSeq != prevCastSeq) {
             prevCastSeq = g.castSeq
-            spriteHero.cast()
+            spriteHero.skill(g.castId, g.castDirX, g.castDirY)
         }
         if (p.hp < prevHp && !g.dead) spriteHero.hurt()
         prevHp = p.hp
@@ -670,6 +677,14 @@ class Renderer(private val g: Game, private val res: Resources) {
 
     // ---------- modo de teste de animação (cicla as 8 direções e todas as animações) ----------
     private val testNames = arrayOf("Parado", "Andar", "Ataque", "Tomar dano", "Conjurar")
+    /** Depois das animações básicas, as habilidades da classe (cada uma com animação própria). */
+    private fun testSkills() = when (g.p.job) {
+        Job.GUERREIRO -> intArrayOf(1, 2, 3)
+        Job.MAGO -> intArrayOf(4, 5, 6)
+        else -> IntArray(0)
+    }
+    private fun testCount() = testNames.size + testSkills().size
+    private fun testName(i: Int) = if (i < testNames.size) testNames[i] else SKILLS[testSkills()[i - testNames.size]].nome
     private var testMode = false
     private var testIdx = 0
     private var testDir = 0
@@ -678,8 +693,8 @@ class Renderer(private val g: Game, private val res: Resources) {
     private val testSprite = SpriteHero(res, art)
     private val actSair: () -> Unit = { g.onSwitchChar?.invoke() }
     private val actTest: () -> Unit = { testMode = !testMode; testIdx = 0; testDir = 0; testDirT = 0f }
-    private val actTestNext: () -> Unit = { testIdx = (testIdx + 1) % testNames.size; testTrig = 0f }
-    private val actTestPrev: () -> Unit = { testIdx = (testIdx + testNames.size - 1) % testNames.size; testTrig = 0f }
+    private val actTestNext: () -> Unit = { testIdx = (testIdx + 1) % testCount(); testTrig = 0f }
+    private val actTestPrev: () -> Unit = { testIdx = (testIdx + testCount() - 1) % testCount(); testTrig = 0f }
     private val actTestDir: () -> Unit = { testDir = (testDir + 1) % 8; testDirT = 0f }
     private var testSlow = false
     private val actTestSlow: () -> Unit = { testSlow = !testSlow }
@@ -700,7 +715,8 @@ class Renderer(private val g: Game, private val res: Resources) {
         val h = 560f
         val l = safeL + (vw - safeL - safeR - w) / 2
         val t = (VH - h) / 2
-        window(c, l, t, w, h, "Teste do Guerreiro  ·  ${testIdx + 1}/${testNames.size}" + if (testSlow) "  ·  0,25x" else "")
+        if (testIdx >= testCount()) testIdx = 0
+        window(c, l, t, w, h, "Teste de animação  ·  ${testIdx + 1}/${testCount()}" + if (testSlow) "  ·  0,25x" else "")
         addBtn(l, t, l + w, t + h, actTestNext)
         val tdt = if (testSlow) dt * 0.25f else dt
         // direção gira sozinha (mais devagar no andar, para ver vários ciclos)
@@ -715,7 +731,12 @@ class Renderer(private val g: Game, private val res: Resources) {
                 2 -> { testSprite.attack(); testTrig = 0.9f }
                 3 -> { testSprite.hurt(); testTrig = 0.8f }
                 4 -> { testSprite.cast(); testTrig = 1.2f }
-                else -> testTrig = 1f
+                in 0..1 -> testTrig = 1f
+                else -> {
+                    val id = testSkills()[testIdx - testNames.size]
+                    testSprite.skill(id, if (SpriteHero.FX[testDir] < 0f) -1f else 1f, 0f)
+                    testTrig = (SpriteClips.SKILL[id]?.dur ?: 1f) + 0.5f
+                }
             }
         }
         val cx = l + w / 2
@@ -725,7 +746,7 @@ class Renderer(private val g: Game, private val res: Resources) {
         // andar contínuo na velocidade real do herói (a escala do teste não muda a cadência)
         testSprite.update(tdt, testIdx == 1, g.p.speed, cx, gy, 4.2f)
         testSprite.draw(c, cx, gy, 4.2f, g.time)
-        label(c, "${testNames[testIdx]}  —  ${SpriteHero.NAMES[testDir]}", cx, t + h - 78f, 19f, INK, Paint.Align.CENTER)
+        label(c, "${testName(testIdx)}  —  ${SpriteHero.NAMES[testDir]}", cx, t + h - 78f, 19f, INK, Paint.Align.CENTER)
         label(c, "Toque no quadro: próxima animação  ·  a direção gira sozinha", cx, t + h - 58f, 13f, INK2, Paint.Align.CENTER)
         button(c, l + 16f, t + h - 50f, 60f, 40f, "◀", true, Style.HUD_BTN, 18f, actTestPrev)
         button(c, l + 82f, t + h - 50f, 104f, 40f, "Direção", true, Style.HUD_BTN, 15f, actTestDir)
@@ -897,6 +918,98 @@ class Renderer(private val g: Game, private val res: Resources) {
                         val r1 = rr * (1.1f + 0.3f * (s % 2))
                         c.drawLine(f.x + cos(ang) * r0, f.y + sin(ang) * r0 * 0.8f, f.x + cos(ang) * r1, f.y + sin(ang) * r1 * 0.8f, stroke)
                     }
+                }
+                FX_FIREBOLT -> {
+                    // bola de fogo com rastro: posição acelera um pouco no fim
+                    val e = k * k * 0.3f + k * 0.7f
+                    val x = f.x + (f.x2 - f.x) * e
+                    val y = f.y + (f.y2 - f.y) * e
+                    val dx = f.x2 - f.x
+                    val dy = f.y2 - f.y
+                    val len = max(1f, kotlin.math.sqrt(dx * dx + dy * dy))
+                    for (s in 5 downTo 1) {
+                        val bx = x - dx / len * s * 9f
+                        val by = y - dy / len * s * 9f + sin(g.time * 30f + s) * 2f
+                        art.circle(c, bx, by, f.r * (1f - s * 0.14f), art.alpha(if (s > 2) col(0xFFE64A19) else f.cor, 150 - s * 22))
+                    }
+                    art.circle(c, x, y, f.r * 1.3f, art.alpha(f.cor, 110))
+                    art.circle(c, x, y, f.r, col(0xFFFF9800))
+                    art.circle(c, x, y, f.r * 0.55f, col(0xFFFFF59D))
+                }
+                FX_QUAKE -> {
+                    // rachaduras que crescem do centro e somem; anel de poeira
+                    val grow = min(1f, k * 4f)
+                    stroke.strokeWidth = 3.5f * (1f - k) + 1.5f
+                    stroke.color = art.alpha(f.cor, a)
+                    for (s in 0 until 9) {
+                        var ang = s * 0.698f + (f.x.toInt() % 7) * 0.1f
+                        var x0 = f.x
+                        var y0 = f.y
+                        val seg = f.r * grow / 3f
+                        for (j in 0 until 3) {
+                            ang += (((s * 7 + j * 13) % 9) - 4) * 0.09f
+                            val x1 = x0 + cos(ang) * seg
+                            val y1 = y0 + sin(ang) * seg * 0.45f
+                            c.drawLine(x0, y0, x1, y1, stroke)
+                            x0 = x1; y0 = y1
+                        }
+                    }
+                    val rr = f.r * (0.4f + 0.8f * k)
+                    fill.color = art.alpha(col(0xFFBCAAA4), (a * 0.35f).toInt())
+                    rect.set(f.x - rr, f.y - rr * 0.4f, f.x + rr, f.y + rr * 0.4f)
+                    c.drawOval(rect, fill)
+                }
+                FX_ICE -> {
+                    // espinhos de gelo brotam rápido em anel e afundam no fim
+                    val h = if (k < 0.15f) k / 0.15f else if (k > 0.7f) (1f - k) / 0.3f else 1f
+                    for (s in 0 until 12) {
+                        val ang = s * 0.5236f + 0.2f
+                        val rr = f.r * (0.55f + 0.35f * ((s * 37) % 10) / 10f)
+                        val bx = f.x + cos(ang) * rr
+                        val by = f.y + sin(ang) * rr * 0.45f
+                        val sh = (26f + (s % 3) * 10f) * h
+                        val w = 7f + (s % 2) * 3f
+                        art.tri(c, bx - w, by, bx + w, by, bx + (s % 3 - 1) * 3f, by - sh, art.alpha(f.cor, min(255, a + 60)))
+                        art.tri(c, bx - w * 0.2f, by, bx + w, by, bx + (s % 3 - 1) * 3f, by - sh, art.alpha(Color.WHITE, a / 2))
+                    }
+                }
+                FX_AURA -> {
+                    // chamas em volta do herói (acompanham a posição atual dele)
+                    val ax = g.px
+                    val ay = g.py
+                    for (s in 0 until 10) {
+                        val ang = s * 0.628f + g.time * 2f
+                        val ox = cos(ang) * f.r
+                        val front = sin(ang) > 0f
+                        val fl = 30f + 14f * sin(g.time * 18f + s * 1.7f)
+                        val cor = if (s % 2 == 0) f.cor else col(0xFFFFCA28)
+                        val alpha = (a * (if (front) 0.8f else 0.45f)).toInt()
+                        art.tri(c, ax + ox - 7f, ay - 4f, ax + ox + 7f, ay - 4f, ax + ox + sin(g.time * 9f + s) * 4f, ay - 4f - fl * (1f - k * 0.5f),
+                            art.alpha(cor, alpha))
+                    }
+                    fill.color = art.alpha(f.cor, a / 5)
+                    rect.set(ax - f.r * 1.4f, ay - 80f, ax + f.r * 1.4f, ay + 6f)
+                    c.drawOval(rect, fill)
+                }
+                FX_SKYBOLT -> {
+                    // raio grosso do céu com galhos, núcleo branco
+                    val top = f.y - 420f
+                    for (pass in 0..1) {
+                        stroke.strokeWidth = if (pass == 0) 9f * (1 - k) + 2f else 3f * (1 - k) + 1f
+                        stroke.color = if (pass == 0) art.alpha(f.cor, a) else art.alpha(Color.WHITE, a)
+                        var x0 = f.x + 30f
+                        var y0 = top
+                        for (s in 1..8) {
+                            val x1 = f.x + if (s == 8) 0f else ((s * 53 + f.x.toInt() * 3) % 50 - 25).toFloat()
+                            val y1 = top + s * 420f / 8f
+                            c.drawLine(x0, y0, x1, y1, stroke)
+                            if (pass == 0 && s % 3 == 1) c.drawLine(x1, y1, x1 + 22f * (if (s % 2 == 0) 1f else -1f), y1 + 30f, stroke)
+                            x0 = x1; y0 = y1
+                        }
+                    }
+                    fill.color = art.alpha(f.cor, a / 3)
+                    rect.set(f.x - 40f, f.y - 14f, f.x + 40f, f.y + 14f)
+                    c.drawOval(rect, fill)
                 }
                 FX_RAIN -> {
                     for (s in 0 until 14) {
@@ -1618,8 +1731,9 @@ class Renderer(private val g: Game, private val res: Resources) {
     // =====================================================================
     // SELEÇÃO DE PERSONAGEM
     // =====================================================================
-    /** Sprite de frente nos slots: 0 = Aprendiz, 1 = Guerreiro. */
-    private val slotBmp = arrayOfNulls<Bitmap>(2)
+    /** Sprite de frente nos slots e na tela inicial: 0 = Aprendiz, 1 = Guerreiro, 2 = Mago. */
+    private val slotBmp = arrayOfNulls<Bitmap>(3)
+    private var slotStaff: Bitmap? = null
     private val actSlot: Array<() -> Unit> = Array(SLOTS) { i ->
         {
             // tocar de novo no slot já escolhido: joga (ou cria, se vazio)
@@ -1698,14 +1812,28 @@ class Renderer(private val g: Game, private val res: Resources) {
     private fun slotHero(c: Canvas, sp: Player, x: Float, feet: Float, h: Float) = frontHero(c, sp.job, x, feet, h)
 
     private fun frontHero(c: Canvas, job: Job, x: Float, feet: Float, h: Float) {
-        if (job == Job.APRENDIZ || job == Job.GUERREIRO) {
-            val i = if (job == Job.APRENDIZ) 0 else 1
+        if (hasSprite(job)) {
+            val i = when (job) { Job.APRENDIZ -> 0; Job.MAGO -> 2; else -> 1 }
             val b = slotBmp[i] ?: BitmapFactory.decodeResource(res, skinOf(job).ids[SpriteHero.S],
                 BitmapFactory.Options().apply { inScaled = false })?.also { slotBmp[i] = it }
             if (b != null) {
                 art.oval(c, x - h * 0.22f, feet - h * 0.05f, x + h * 0.22f, feet + h * 0.05f, col(0x44000000))
                 val k = h / b.height
                 dstR.set(x - b.width * k / 2, feet - b.height * k, x + b.width * k / 2, feet)
+                val sk = skinOf(job)
+                if (sk.staffId != 0) {
+                    // cajado atrás do corpo, na mão da vista de frente
+                    val st = slotStaff ?: BitmapFactory.decodeResource(res, sk.staffId,
+                        BitmapFactory.Options().apply { inScaled = false })?.also { slotStaff = it }
+                    if (st != null) {
+                        c.save()
+                        c.translate(dstR.left + sk.handX[0] * k, dstR.top + sk.handY[0] * k)
+                        c.rotate(sk.staffTilt[0])
+                        c.scale(k, k)
+                        c.drawBitmap(st, -sk.gripX, -sk.gripY, bmpPaint)
+                        c.restore()
+                    }
+                }
                 c.drawBitmap(b, null, dstR, bmpPaint)
                 return
             }
