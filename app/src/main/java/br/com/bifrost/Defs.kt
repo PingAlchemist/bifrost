@@ -7,13 +7,13 @@ import kotlin.math.sqrt
 fun col(v: Long): Int = v.toInt()
 
 /** Versão mostrada na tela inicial e na seleção (conferir no celular qual APK está instalado). */
-const val VERSAO = "1.2.0"
+const val VERSAO = "1.3.0"
 
 /** TESTE: multiplicador de EXP (base e classe), online e offline. Volte para 1f quando terminar os testes. */
-const val EXP_RATE = 15f
+const val EXP_RATE = 60f
 
 /** TESTE: multiplicador de drop (itens, poções e cartas; chance acima de 100% vira quantidade). Volte para 1f depois. */
-const val DROP_RATE = 15f
+const val DROP_RATE = 60f
 
 /**
  * Estilo visual centralizado: paleta base (10 cores, tons pastel/terrosos), tamanhos e HUD.

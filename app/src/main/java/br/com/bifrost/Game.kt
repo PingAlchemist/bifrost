@@ -667,7 +667,8 @@ class Game {
     // ================= COMBATE =================
     fun hitChance(m: MonsterDef) = (0.8f + (p.hit - m.flee) / 100f).coerceIn(0.05f, 1f)
     fun reduce(d: Float, def: Int, magic: Boolean): Float {
-        val e = if (magic) def * 0.5f else def.toFloat()
+        // penetração (equipamentos) ignora parte da defesa do monstro
+        val e = (if (magic) def * 0.5f else def.toFloat()) * (1f - if (magic) p.penMag else p.penFis)
         return d * (1f - e / (e + 150f))
     }
 
@@ -994,7 +995,9 @@ class Game {
             snd(Audio.S_MISS, 1.3f)
             return
         }
-        val dmg = max(1f, m.d.atk * vari() * (1f - p.def / (p.def + 120f)) - p.tot[VIT] * 0.3f).toInt()
+        // monstros mágicos (lista em equipamentos.json) também são reduzidos pela defesa mágica
+        val mres = if (p.mdef > 0f && Equip.isMagicMob(m.d.id)) 1f - p.mdef / (p.mdef + Equip.mdefK) else 1f
+        val dmg = max(1f, m.d.atk * vari() * (1f - p.def / (p.def + 120f)) * mres - p.tot[VIT] * 0.3f).toInt()
         p.hp -= dmg
         snd(Audio.S_HURT, 0.95f + rnd.nextFloat() * 0.1f)
         texts.add(FText(px + rnd.nextInt(-8, 8), py - 74f, "$dmg", C_RED, 0.6f, false, TXT_DMG))
@@ -1428,6 +1431,23 @@ class Game {
         addLog(refineMsg, if (ok) C_GOLD else C_RED)
     }
 
+    fun equipItem(it: GearItem) {
+        if (p.lv < it.base.nivel) { addLog("Requer nível ${it.base.nivel}.", C_RED); return }
+        if (!it.tipo.serve(p.job)) { addLog("${p.job.nome} não usa ${it.tipo.nome.lowercase()}.", C_RED); return }
+        if (p.equip(it)) addLog("Equipou ${it.nome}.", Equip.tierCor(it.tier))
+    }
+
+    /** Teste: cria um item do tier pedido (só até o tier ativo), da faixa de nível do personagem. */
+    fun debugItem(tier: Int) {
+        if (tier < 1 || tier > Equip.tierAtivo) return
+        val ok = Equip.itens.filter { it.nivel <= p.lv }
+        val maxLv = ok.maxOfOrNull { it.nivel } ?: return
+        val pool = ok.filter { it.nivel == maxLv }
+        val it = Equip.roll(pool[rnd.nextInt(pool.size)], tier, p.nextUid++, rnd)
+        p.bag.add(it)
+        addLog("[Teste] ${it.nome} (${Equip.tierNome(tier)})", Equip.tierCor(tier))
+    }
+
     fun insertCard(id: Int) {
         if (p.cards[id] <= 0) return
         val m = MONSTERS[id]
@@ -1444,6 +1464,8 @@ class Game {
 
     fun changeJob(j: Job) {
         p.job = j
+        // arma do tipo errado para a nova classe volta para a bolsa
+        p.gear[0]?.let { if (!it.tipo.serve(j)) p.unequip(0) }
         p.jlv = 1
         p.jexp = 0
         p.recalc()

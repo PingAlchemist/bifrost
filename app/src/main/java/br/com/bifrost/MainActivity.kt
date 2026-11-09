@@ -39,6 +39,7 @@ class MainActivity : Activity() {
         // mapa da floresta (camadas e colisão) antes de o jogo começar a spawnar monstros
         Forest.load(resources)
         Town.load(resources)
+        Equip.load(assets)
         game = Game()
         migrate()
         refreshSlots()

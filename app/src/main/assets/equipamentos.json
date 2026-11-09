@@ -1,0 +1,113 @@
+{
+  "_leia": "Configuração dos equipamentos com tier. Edite os números aqui e gere o APK de novo; não precisa mexer no código. Listas por tier têm 5 posições (tier 1 a 5); o tier 5 está reservado e não dropa nem é criado.",
+
+  "tiers": {
+    "nomes": ["Comum", "Incomum", "Raro", "Épico", "Lendário"],
+    "cores": ["#FFFFFF", "#4CAF50", "#42A5F5", "#AB47BC", "#FF9800"],
+    "encantamentos": [[1, 1], [1, 2], [2, 2], [3, 3], [3, 3]],
+    "tierMaximoAtivo": 4
+  },
+
+  "_encantamentos": "Faixa [mínimo, máximo] de cada encantamento por tier (1 a 5).",
+  "encantamentos": {
+    "FOR":      [[1, 2], [2, 3], [3, 5], [5, 7], [7, 10]],
+    "AGI":      [[1, 2], [2, 3], [3, 5], [5, 7], [7, 10]],
+    "VIT":      [[1, 2], [2, 3], [3, 5], [5, 7], [7, 10]],
+    "INT":      [[1, 2], [2, 3], [3, 5], [5, 7], [7, 10]],
+    "DES":      [[1, 2], [2, 3], [3, 5], [5, 7], [7, 10]],
+    "SOR":      [[1, 2], [2, 3], [3, 5], [5, 7], [7, 10]],
+    "ATK_PCT":  [[1, 3], [3, 5], [5, 8], [8, 12], [12, 16]],
+    "MATK_PCT": [[1, 3], [3, 5], [5, 8], [8, 12], [12, 16]],
+    "PEN_FIS":  [[2, 4], [4, 7], [7, 11], [11, 16], [16, 22]],
+    "PEN_MAG":  [[2, 4], [4, 7], [7, 11], [11, 16], [16, 22]],
+    "CRIT":     [[1, 2], [2, 3], [3, 5], [5, 7], [7, 10]],
+    "ASPD":     [[1, 3], [3, 5], [5, 8], [8, 11], [11, 15]],
+    "HP_PCT":   [[2, 4], [4, 6], [6, 9], [9, 13], [13, 18]],
+    "SP_PCT":   [[2, 4], [4, 6], [6, 9], [9, 13], [13, 18]],
+    "DEF":      [[2, 4], [4, 7], [7, 11], [11, 16], [16, 22]],
+    "MDEF":     [[2, 4], [4, 7], [7, 11], [11, 16], [16, 22]],
+    "FLEE":     [[2, 4], [4, 7], [7, 11], [11, 16], [16, 22]]
+  },
+
+  "_grupos": "Quais encantamentos cada tipo de equipamento pode receber.",
+  "grupos": {
+    "atributos": ["FOR", "AGI", "VIT", "INT", "DES", "SOR"],
+    "ofensivos": ["ATK_PCT", "MATK_PCT", "PEN_FIS", "PEN_MAG", "CRIT", "ASPD"],
+    "defensivos": ["HP_PCT", "SP_PCT", "DEF", "MDEF", "FLEE"]
+  },
+  "porTipo": {
+    "ARMA_FIS":  ["FOR", "AGI", "VIT", "DES", "SOR", "ATK_PCT", "PEN_FIS", "CRIT", "ASPD"],
+    "ARMA_MAG":  ["AGI", "VIT", "INT", "DES", "SOR", "MATK_PCT", "PEN_MAG", "ASPD", "SP_PCT"],
+    "ELMO":      ["FOR", "AGI", "VIT", "INT", "DES", "SOR", "HP_PCT", "SP_PCT", "DEF", "MDEF"],
+    "ARMADURA":  ["FOR", "AGI", "VIT", "INT", "DES", "SOR", "HP_PCT", "SP_PCT", "DEF", "MDEF", "FLEE"],
+    "ESCUDO":    ["VIT", "HP_PCT", "DEF", "MDEF", "FLEE"],
+    "BOTAS":     ["AGI", "DES", "VIT", "HP_PCT", "DEF", "FLEE", "ASPD"],
+    "ACESSORIO": ["FOR", "AGI", "VIT", "INT", "DES", "SOR", "ATK_PCT", "MATK_PCT", "CRIT", "ASPD", "HP_PCT", "SP_PCT"]
+  },
+
+  "_combate": "Limites dos atributos novos. Penetração ignora essa % da defesa do monstro. Defesa mágica reduz o dano dos monstros mágicos (ids da lista).",
+  "combate": {
+    "penetracaoMaxima": 60,
+    "mdefConstante": 120,
+    "monstrosMagicos": [11, 14, 15, 17, 19]
+  },
+
+  "_itens": "Itens base. nivel = nível requerido; mapa = mapa onde dropa (1 a 7). base = atributos fixos (ATK e MATK da arma e DEF da armadura substituem os da loja quando equipados).",
+  "itens": [
+    {"id": 1,  "nome": "Lâmina de Bronze",     "tipo": "ARMA_FIS",  "nivel": 1,  "mapa": 1, "base": {"ATK": 12}},
+    {"id": 2,  "nome": "Varinha de Aprendiz",  "tipo": "ARMA_MAG",  "nivel": 1,  "mapa": 1, "base": {"MATK": 12}},
+    {"id": 3,  "nome": "Capuz de Pano",        "tipo": "ELMO",      "nivel": 1,  "mapa": 1, "base": {"DEF": 1, "MDEF": 1}},
+    {"id": 4,  "nome": "Túnica Simples",       "tipo": "ARMADURA",  "nivel": 1,  "mapa": 1, "base": {"DEF": 3}},
+    {"id": 5,  "nome": "Broquel de Madeira",   "tipo": "ESCUDO",    "nivel": 1,  "mapa": 1, "base": {"DEF": 1}},
+    {"id": 6,  "nome": "Sandálias",            "tipo": "BOTAS",     "nivel": 1,  "mapa": 1, "base": {"DEF": 1, "FLEE": 1}},
+    {"id": 7,  "nome": "Anel de Cobre",        "tipo": "ACESSORIO", "nivel": 1,  "mapa": 1, "base": {"MDEF": 1}},
+
+    {"id": 11, "nome": "Machado de Lenhador",  "tipo": "ARMA_FIS",  "nivel": 6,  "mapa": 2, "base": {"ATK": 20}},
+    {"id": 12, "nome": "Cajado de Salgueiro",  "tipo": "ARMA_MAG",  "nivel": 6,  "mapa": 2, "base": {"MATK": 20}},
+    {"id": 13, "nome": "Chapéu de Couro",      "tipo": "ELMO",      "nivel": 6,  "mapa": 2, "base": {"DEF": 2, "MDEF": 1}},
+    {"id": 14, "nome": "Colete de Couro",      "tipo": "ARMADURA",  "nivel": 6,  "mapa": 2, "base": {"DEF": 6}},
+    {"id": 15, "nome": "Escudo de Couro",      "tipo": "ESCUDO",    "nivel": 6,  "mapa": 2, "base": {"DEF": 3}},
+    {"id": 16, "nome": "Botas de Couro",       "tipo": "BOTAS",     "nivel": 6,  "mapa": 2, "base": {"DEF": 1, "FLEE": 2}},
+    {"id": 17, "nome": "Amuleto de Pena",      "tipo": "ACESSORIO", "nivel": 6,  "mapa": 2, "base": {"MDEF": 2}},
+
+    {"id": 21, "nome": "Espada do Bosque",     "tipo": "ARMA_FIS",  "nivel": 12, "mapa": 3, "base": {"ATK": 30}},
+    {"id": 22, "nome": "Cetro Silvestre",      "tipo": "ARMA_MAG",  "nivel": 12, "mapa": 3, "base": {"MATK": 30}},
+    {"id": 23, "nome": "Elmo de Folhas",       "tipo": "ELMO",      "nivel": 12, "mapa": 3, "base": {"DEF": 3, "MDEF": 2}},
+    {"id": 24, "nome": "Gibão do Bosque",      "tipo": "ARMADURA",  "nivel": 12, "mapa": 3, "base": {"DEF": 9}},
+    {"id": 25, "nome": "Escudo de Casca",      "tipo": "ESCUDO",    "nivel": 12, "mapa": 3, "base": {"DEF": 4}},
+    {"id": 26, "nome": "Botas do Andarilho",   "tipo": "BOTAS",     "nivel": 12, "mapa": 3, "base": {"DEF": 2, "FLEE": 3}},
+    {"id": 27, "nome": "Anel de Seiva",        "tipo": "ACESSORIO", "nivel": 12, "mapa": 3, "base": {"MDEF": 3}},
+
+    {"id": 31, "nome": "Cimitarra das Dunas",  "tipo": "ARMA_FIS",  "nivel": 26, "mapa": 4, "base": {"ATK": 58}},
+    {"id": 32, "nome": "Cajado Solar",         "tipo": "ARMA_MAG",  "nivel": 26, "mapa": 4, "base": {"MATK": 58}},
+    {"id": 33, "nome": "Turbante do Deserto",  "tipo": "ELMO",      "nivel": 26, "mapa": 4, "base": {"DEF": 6, "MDEF": 4}},
+    {"id": 34, "nome": "Couraça das Dunas",    "tipo": "ARMADURA",  "nivel": 26, "mapa": 4, "base": {"DEF": 17}},
+    {"id": 35, "nome": "Escudo do Escaravelho","tipo": "ESCUDO",    "nivel": 26, "mapa": 4, "base": {"DEF": 8}},
+    {"id": 36, "nome": "Botas das Areias",     "tipo": "BOTAS",     "nivel": 26, "mapa": 4, "base": {"DEF": 4, "FLEE": 5}},
+    {"id": 37, "nome": "Amuleto Solar",        "tipo": "ACESSORIO", "nivel": 26, "mapa": 4, "base": {"MDEF": 5}},
+
+    {"id": 41, "nome": "Lâmina Glacial",       "tipo": "ARMA_FIS",  "nivel": 42, "mapa": 5, "base": {"ATK": 98}},
+    {"id": 42, "nome": "Cetro Glacial",        "tipo": "ARMA_MAG",  "nivel": 42, "mapa": 5, "base": {"MATK": 98}},
+    {"id": 43, "nome": "Elmo de Gelo",         "tipo": "ELMO",      "nivel": 42, "mapa": 5, "base": {"DEF": 10, "MDEF": 7}},
+    {"id": 44, "nome": "Peitoral Glacial",     "tipo": "ARMADURA",  "nivel": 42, "mapa": 5, "base": {"DEF": 29}},
+    {"id": 45, "nome": "Escudo Glacial",       "tipo": "ESCUDO",    "nivel": 42, "mapa": 5, "base": {"DEF": 14}},
+    {"id": 46, "nome": "Botas de Pele",        "tipo": "BOTAS",     "nivel": 42, "mapa": 5, "base": {"DEF": 7, "FLEE": 8}},
+    {"id": 47, "nome": "Anel Glacial",         "tipo": "ACESSORIO", "nivel": 42, "mapa": 5, "base": {"MDEF": 8}},
+
+    {"id": 51, "nome": "Espada Sombria",       "tipo": "ARMA_FIS",  "nivel": 60, "mapa": 6, "base": {"ATK": 152}},
+    {"id": 52, "nome": "Cajado Espectral",     "tipo": "ARMA_MAG",  "nivel": 60, "mapa": 6, "base": {"MATK": 152}},
+    {"id": 53, "nome": "Elmo Sombrio",         "tipo": "ELMO",      "nivel": 60, "mapa": 6, "base": {"DEF": 15, "MDEF": 10}},
+    {"id": 54, "nome": "Armadura Sombria",     "tipo": "ARMADURA",  "nivel": 60, "mapa": 6, "base": {"DEF": 45}},
+    {"id": 55, "nome": "Escudo Sombrio",       "tipo": "ESCUDO",    "nivel": 60, "mapa": 6, "base": {"DEF": 22}},
+    {"id": 56, "nome": "Grevas Sombrias",      "tipo": "BOTAS",     "nivel": 60, "mapa": 6, "base": {"DEF": 11, "FLEE": 11}},
+    {"id": 57, "nome": "Amuleto Espectral",    "tipo": "ACESSORIO", "nivel": 60, "mapa": 6, "base": {"MDEF": 12}},
+
+    {"id": 61, "nome": "Garra Dracônica",      "tipo": "ARMA_FIS",  "nivel": 80, "mapa": 7, "base": {"ATK": 228}},
+    {"id": 62, "nome": "Cetro do Dragão",      "tipo": "ARMA_MAG",  "nivel": 80, "mapa": 7, "base": {"MATK": 228}},
+    {"id": 63, "nome": "Elmo Dracônico",       "tipo": "ELMO",      "nivel": 80, "mapa": 7, "base": {"DEF": 22, "MDEF": 15}},
+    {"id": 64, "nome": "Couraça Dracônica",    "tipo": "ARMADURA",  "nivel": 80, "mapa": 7, "base": {"DEF": 66}},
+    {"id": 65, "nome": "Escudo de Escamas",    "tipo": "ESCUDO",    "nivel": 80, "mapa": 7, "base": {"DEF": 32}},
+    {"id": 66, "nome": "Botas Dracônicas",     "tipo": "BOTAS",     "nivel": 80, "mapa": 7, "base": {"DEF": 16, "FLEE": 15}},
+    {"id": 67, "nome": "Anel do Dragão",       "tipo": "ACESSORIO", "nivel": 80, "mapa": 7, "base": {"MDEF": 17}}
+  ]
+}

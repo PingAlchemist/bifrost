@@ -68,12 +68,15 @@ class Renderer(private val g: Game, private val res: Resources) {
     private val btnPool = Array(128) { Btn() }
     private var nBtn = 0
     private var cardPage = 0
+    private var itensTab = 0
+    private var bagPage = 0
+    private var selItem: GearItem? = null
     private var resetArm = 0f
 
     private val actMenu: Array<() -> Unit> = arrayOf(
         { g.panel = Panel.STATUS },
         { g.panel = Panel.SKILLS },
-        { cardPage = 0; g.panel = Panel.ITENS },
+        { cardPage = 0; bagPage = 0; selItem = null; g.panel = Panel.ITENS },
         { if (g.map.id != 0 && !g.dead) g.changeMap(0, 2) },
     )
     private val actFx: () -> Unit = {
@@ -1430,6 +1433,198 @@ class Renderer(private val g: Game, private val res: Resources) {
     }
 
     private fun panelItens(c: Canvas, pl: Float, pt: Float, pw: Float, ph: Float) {
+        button(c, pl + 16f, pt + 44f, 200f, 36f, "Equipamentos", true, if (itensTab == 0) BTN_GOLD else Style.HUD_BTN, 16f) { itensTab = 0 }
+        button(c, pl + 224f, pt + 44f, 220f, 36f, "Consumíveis e cartas", true, if (itensTab == 1) BTN_GOLD else Style.HUD_BTN, 16f) { itensTab = 1 }
+        if (itensTab == 0) panelEquip(c, pl, pt + 88f, pw, ph - 88f) else panelItensGeral(c, pl, pt + 40f, pw, ph - 40f)
+    }
+
+    private val SLOT_BG = col(0xFF2E3846)
+    private val TIP_BG = col(0xF21E2530)
+    private val C_UP = col(0xFF66BB6A)
+    private val C_DOWN = col(0xFFEF5350)
+
+    /** Aba de equipamentos com tier: espaços equipados, bolsa paginada e detalhes do item escolhido. */
+    private fun panelEquip(c: Canvas, pl: Float, top: Float, pw: Float, h: Float) {
+        val p = g.p
+        if (selItem != null && selItem !in p.bag && p.gear.none { it === selItem }) selItem = null
+        // ----- espaços equipados -----
+        val sx = pl + 16f
+        for (s in 0 until N_SLOTS) {
+            val y = top + s * 54f
+            val it = p.gear[s]
+            rect.set(sx, y, sx + 250f, y + 48f)
+            fill.color = SLOT_BG; c.drawRoundRect(rect, 6f, 6f, fill)
+            if (it != null && it === selItem) { stroke.strokeWidth = 2.5f; stroke.color = col(0xFFFFD54F); c.drawRoundRect(rect, 6f, 6f, stroke) }
+            itemBox(c, sx + 4f, y + 4f, 40f, it, it?.tipo ?: slotType(s))
+            label(c, SLOT_NOMES[s], sx + 52f, y + 18f, 12f, col(0xFFB0BEC5))
+            val nome = when {
+                it != null -> it.nome
+                s == 0 -> "${p.weaponName()} (loja)"
+                s == 2 -> "${p.armorName()} (loja)"
+                else -> "vazio"
+            }
+            label(c, fit(nome, 190f, 15f), sx + 52f, y + 38f, 15f, if (it != null) Equip.tierCor(it.tier) else col(0xFF8A96A6))
+            if (it != null) addBtn(sx, y, sx + 250f, y + 48f) { selItem = it }
+        }
+        // ----- teste: gerar item de qualquer tier -----
+        val dy = top + N_SLOTS * 54f + 12f
+        label(c, "Teste: gerar item", sx, dy + 4f, 13f, INK2)
+        for (t in 1..4) button(c, sx + (t - 1) * 63f, dy + 12f, 58f, 34f, "T$t", true, tierBtn(t), 15f) { g.debugItem(t) }
+
+        // ----- bolsa -----
+        val gx = pl + 286f
+        val cell = 56f
+        val gap = 6f
+        val cols = 5
+        val rows = max(1, ((h - 70f) / (cell + gap)).toInt())
+        val per = cols * rows
+        val pages = max(1, (p.bag.size + per - 1) / per)
+        bagPage = bagPage.coerceIn(0, pages - 1)
+        label(c, "Bolsa: ${p.bag.size} itens", gx, top + 2f, 14f, INK2)
+        for (k in 0 until per) {
+            val i = bagPage * per + k
+            val x = gx + (k % cols) * (cell + gap)
+            val y = top + 10f + (k / cols) * (cell + gap)
+            val it = p.bag.getOrNull(i)
+            itemBox(c, x, y, cell, it, it?.tipo)
+            if (it != null) {
+                if (it === selItem) { rect.set(x - 2f, y - 2f, x + cell + 2f, y + cell + 2f); stroke.strokeWidth = 2.5f; stroke.color = col(0xFFFFD54F); c.drawRoundRect(rect, 7f, 7f, stroke) }
+                if (p.lv < it.base.nivel || !it.tipo.serve(p.job)) { fill.color = col(0x66B71C1C); rect.set(x, y, x + cell, y + cell); c.drawRoundRect(rect, 6f, 6f, fill) }
+                addBtn(x, y, x + cell, y + cell) { selItem = it }
+            }
+        }
+        if (pages > 1) {
+            val by = top + h - 50f
+            button(c, gx, by, 60f, 40f, "<", bagPage > 0, Style.HUD_BTN, 18f) { bagPage-- }
+            label(c, "${bagPage + 1}/$pages", gx + 152f, by + 27f, 16f, INK, Paint.Align.CENTER)
+            button(c, gx + 244f, by, 60f, 40f, ">", bagPage < pages - 1, Style.HUD_BTN, 18f) { bagPage++ }
+        }
+
+        // ----- detalhes do item -----
+        val tx = gx + cols * (cell + gap) + 10f
+        val tw = pl + pw - 16f - tx
+        rect.set(tx, top, tx + tw, top + h - 12f)
+        fill.color = TIP_BG; c.drawRoundRect(rect, 8f, 8f, fill)
+        val it = selItem
+        if (it == null) {
+            label(c, "Toque em um item para ver", tx + 14f, top + 30f, 14f, col(0xFFB0BEC5))
+            label(c, "atributos e comparação.", tx + 14f, top + 50f, 14f, col(0xFFB0BEC5))
+            return
+        }
+        itemTooltip(c, it, tx + 14f, top + 28f, tw - 28f, top + h - 12f)
+    }
+
+    private fun tierBtn(t: Int) = when (t) { 1 -> col(0xFF78909C); 2 -> col(0xFF388E3C); 3 -> col(0xFF1E88E5); 4 -> col(0xFF8E24AA); else -> col(0xFFEF6C00) }
+
+    private fun slotType(s: Int): EqType? = when (s) {
+        0 -> if (g.p.job.magic) EqType.ARMA_MAG else EqType.ARMA_FIS
+        else -> EqType.entries.firstOrNull { it.slot == s }
+    }
+
+    /** Detalhes: atributos base, encantamentos e diferença para o que está equipado (verde melhor, vermelho pior). */
+    private fun itemTooltip(c: Canvas, it: GearItem, x: Float, y0: Float, w: Float, bottom: Float) {
+        val p = g.p
+        val tc = Equip.tierCor(it.tier)
+        var y = y0
+        for (ln in wrap(it.nome, w, 19f)) { label(c, ln, x, y, 19f, tc); y += 23f }
+        label(c, "Tier ${it.tier} · ${Equip.tierNome(it.tier)}", x, y, 14f, tc); y += 20f
+        val okLv = p.lv >= it.base.nivel
+        val okJob = it.tipo.serve(p.job)
+        label(c, "${it.tipo.nome} · requer Nv ${it.base.nivel}", x, y, 14f, if (okLv && okJob) col(0xFFCFD8DC) else C_DOWN); y += 18f
+        if (!okJob) { label(c, "${p.job.nome} não pode usar", x, y, 13f, C_DOWN); y += 18f }
+        y += 6f
+        for (k in it.base.base.indices) if (it.base.base[k] != 0) {
+            label(c, St.entries[k].texto(it.base.base[k]), x, y, 15f, Color.WHITE); y += 20f
+        }
+        y += 4f
+        label(c, "Encantamentos", x, y, 13f, col(0xFF90A4AE)); y += 19f
+        for (i in it.ench.indices) { label(c, "✦ " + St.entries[it.ench[i]].texto(it.vals[i]), x, y, 15f, tc); y += 20f }
+        val equipped = p.gear[it.tipo.slot] === it
+        y += 8f
+        if (!equipped && okJob) {
+            label(c, "Comparado ao equipado", x, y, 13f, col(0xFF90A4AE)); y += 19f
+            val a = it.stats()
+            val b = p.slotStats(it.tipo.slot)
+            var any = false
+            for (k in a.indices) {
+                val d = a[k] - b[k]
+                if (d == 0) continue
+                any = true
+                if (y < bottom - 64f) { label(c, St.entries[k].texto(d), x, y, 14f, if (d > 0) C_UP else C_DOWN); y += 18f }
+            }
+            if (!any) label(c, "Igual ao atual", x, y, 14f, col(0xFFCFD8DC))
+        } else if (equipped) label(c, "Equipado", x, y, 14f, C_UP)
+        val by = bottom - 54f
+        if (equipped) button(c, x, by, w, 42f, "Desequipar", true, Style.HUD_BTN, 17f) { p.unequip(it.tipo.slot) }
+        else button(c, x, by, w, 42f, "Equipar", okLv && okJob, BTN_GOLD, 17f) { g.equipItem(it) }
+    }
+
+    /** Quadrado do item: fundo escuro, brilho e borda na cor do tier e ícone do tipo. */
+    private fun itemBox(c: Canvas, x: Float, y: Float, sz: Float, it: GearItem?, tipo: EqType?) {
+        rect.set(x, y, x + sz, y + sz)
+        fill.color = col(0xFF1C232C); c.drawRoundRect(rect, 6f, 6f, fill)
+        val cor = if (it != null) Equip.tierCor(it.tier) else col(0xFF55606E)
+        if (it != null && it.tier >= 2) {
+            fill.color = (cor and 0x00FFFFFF) or 0x33000000
+            c.drawCircle(x + sz / 2, y + sz / 2, sz * 0.42f, fill)
+        }
+        rect.set(x, y, x + sz, y + sz)
+        stroke.strokeWidth = if (it != null) 2f else 1f; stroke.color = cor
+        c.drawRoundRect(rect, 6f, 6f, stroke)
+        if (tipo != null) itemIcon(c, tipo, x + sz / 2, y + sz / 2, sz * 0.32f, cor)
+    }
+
+    private fun itemIcon(c: Canvas, t: EqType, cx: Float, cy: Float, r: Float, cor: Int) {
+        stroke.color = cor; stroke.strokeWidth = max(2f, r * 0.16f)
+        path.reset()
+        when (t) {
+            EqType.ARMA_FIS -> {
+                c.drawLine(cx - r * 0.8f, cy + r * 0.8f, cx + r * 0.9f, cy - r * 0.9f, stroke)
+                c.drawLine(cx - r * 0.75f, cy + r * 0.15f, cx - r * 0.15f, cy + r * 0.75f, stroke)
+            }
+            EqType.ARMA_MAG -> {
+                c.drawLine(cx - r * 0.7f, cy + r, cx + r * 0.35f, cy - r * 0.35f, stroke)
+                c.drawCircle(cx + r * 0.55f, cy - r * 0.55f, r * 0.32f, stroke)
+            }
+            EqType.ELMO -> {
+                rect.set(cx - r * 0.85f, cy - r * 0.8f, cx + r * 0.85f, cy + r * 0.9f)
+                c.drawArc(rect, 180f, 180f, false, stroke)
+                c.drawLine(cx - r * 0.95f, cy + r * 0.05f, cx + r * 0.95f, cy + r * 0.05f, stroke)
+                c.drawLine(cx, cy - r * 0.8f, cx, cy + r * 0.6f, stroke)
+            }
+            EqType.ARMADURA -> {
+                path.moveTo(cx - r * 0.4f, cy - r * 0.85f); path.lineTo(cx - r, cy - r * 0.5f); path.lineTo(cx - r * 0.7f, cy - r * 0.1f)
+                path.lineTo(cx - r * 0.6f, cy + r * 0.9f); path.lineTo(cx + r * 0.6f, cy + r * 0.9f); path.lineTo(cx + r * 0.7f, cy - r * 0.1f)
+                path.lineTo(cx + r, cy - r * 0.5f); path.lineTo(cx + r * 0.4f, cy - r * 0.85f); path.close()
+                c.drawPath(path, stroke)
+            }
+            EqType.ESCUDO -> {
+                path.moveTo(cx - r * 0.8f, cy - r * 0.8f); path.lineTo(cx + r * 0.8f, cy - r * 0.8f)
+                path.quadTo(cx + r * 0.8f, cy + r * 0.5f, cx, cy + r); path.quadTo(cx - r * 0.8f, cy + r * 0.5f, cx - r * 0.8f, cy - r * 0.8f)
+                c.drawPath(path, stroke)
+            }
+            EqType.BOTAS -> {
+                path.moveTo(cx - r * 0.5f, cy - r); path.lineTo(cx - r * 0.5f, cy + r * 0.8f); path.lineTo(cx + r * 0.9f, cy + r * 0.8f)
+                path.lineTo(cx + r * 0.9f, cy + r * 0.35f); path.lineTo(cx + r * 0.2f, cy + r * 0.1f); path.lineTo(cx + r * 0.2f, cy - r)
+                c.drawPath(path, stroke)
+            }
+            EqType.ACESSORIO -> {
+                c.drawCircle(cx, cy + r * 0.2f, r * 0.65f, stroke)
+                fill.color = cor; c.drawCircle(cx, cy - r * 0.55f, r * 0.25f, fill)
+            }
+        }
+    }
+
+    /** Corta o texto com reticências se passar da largura. */
+    private fun fit(s: String, maxW: Float, size: Float): String {
+        text.textSize = size
+        if (text.measureText(s) <= maxW) return s
+        var t = s
+        while (t.length > 1 && text.measureText("$t…") > maxW) t = t.dropLast(1)
+        return "$t…"
+    }
+
+    private fun panelItensGeral(c: Canvas, pl: Float, pt: Float, pw: Float, ph: Float) {
         val p = g.p
         val x = pl + 26f
         var y = pt + 70f
