@@ -2,7 +2,8 @@
 
 Jogo Android 2D (Kotlin + Canvas, sem dependências), inspirado na sensação do Ragnarok Online com arte própria.
 APK atual: `Bifrost.apk` (raiz). Build: `$env:JAVA_HOME="C:\Users\diego.aragao\AndroidDev\jdk17"; .\gradlew.bat assembleDebug`.
-Emulador: AVD `caca` (`AndroidDev\sdk\emulator\emulator.exe -avd caca`). ffmpeg instalado via winget (Gyan.FFmpeg).
+PC de casa (C:\Users\Diego): JDK em `C:\Program Files\Microsoft\jdk-17.0.21.21-hotspot`, SDK em `%LOCALAPPDATA%\Android\Sdk`;
+emulador NÃO roda aqui (virtualização desligada na BIOS) — testar no celular. Emulador (outro PC): AVD `caca` (`AndroidDev\sdk\emulator\emulator.exe -avd caca`). ffmpeg instalado via winget (Gyan.FFmpeg).
 
 ## Feito e aprovado
 - Jogo base: classes (Aprendiz→Guerreiro/Mago/Caçador/Ladino), Base/Job Lv, 6 atributos, 4 skills por classe, auto-ataque,
@@ -19,6 +20,12 @@ Emulador: AVD `caca` (`AndroidDev\sdk\emulator\emulator.exe -avd caca`). ffmpeg 
 - **Floresta substitui o Campo de Aprendizes** (mapa id 1): `art/tools/ForestExtract.java` + `art/floresta/sementes.txt`
   (uma semente por objeto; editar e rodar de novo). Camadas `floresta_chao/topo/base.png` + 27 `floresta_obj_XX.png`,
   objeto `Forest` em `Art.kt` (dados de objetos, colisão, saídas). Esquerda → Vila; direita e topo → "Em breve".
+
+- **Morte do herói em sprite** (`SpriteHero.drawDead`): pisca, cai de costas em 0,4s e quica (antes caía no boneco antigo).
+- **Aprendiz com roupa própria**: `art/source/aprendiz_sheet.png` (fundo removido com rembg/isnet-anime a partir de
+  `Imagens/aprendiz/…`). `SpriteSkin` em `Art.kt` guarda PNGs e pivôs por visual; ferramentas aceitam perfil:
+  `SpriteTool … 420 aprendiz`, `SideLayers <aprendiz_e.png> <res> art/debug aprendiz`, `FrontLayers <res> art/debug aprendiz`.
+- **Seleção de personagem**: até 3 slots (`save0..2`), save antigo migrado para o slot 1; "Trocar personagem" no painel Status.
 
 ## Pendente / combinado
 - **EXP 5x para testes**: `const val EXP_RATE = 5f` em `Defs.kt` — voltar para `1f` depois.
