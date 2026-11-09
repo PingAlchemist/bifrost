@@ -43,6 +43,10 @@ emulador NÃO roda aqui (virtualização desligada na BIOS) — testar no celula
   SETA_FOGO, TEMPESTADE, NOVA, ATTACK_STAFF); `SKILL_HIT` = instante do impacto, e `Game.cast` aplica dano/efeitos
   nesse instante (`after`). Efeitos novos: FX_FIREBOLT, FX_QUAKE, FX_ICE, FX_AURA, FX_SKYBOLT. Botão Anim mostra as
   habilidades da classe. Próximo: Caçador, Ladino e Aprendiz (Primeiros Socorros ainda usa o conjurar genérico).
+- **Caçador em sprites** (v1.4.0): `art/source/cacador_sheet.png` (de `art/personagens/arqueiro/`), perfil `cacador`
+  em SpriteTool/SideLayers/FrontLayers; arco separado (`cacador_arco.png`, sem corda) na mão via `staffId`; a corda e a
+  flecha são desenhadas pelo jogo (`SpriteSkin.stringPts`, canal `CH_PULL`). Clipes ATTACK_BOW, DISPARO_DUPLO, CHUVA,
+  OLHO_AGUIA com dano no instante da soltura (`SKILL_HIT`, `DUPLO_HIT2`).
 - **Versão** visível na tela inicial/seleção (`VERSAO` em Defs.kt + versionCode/versionName): aumentar a cada entrega.
 
 ## Pendente / combinado

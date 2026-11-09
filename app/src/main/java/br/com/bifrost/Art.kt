@@ -797,7 +797,8 @@ const val CH_WEAPON = 11  // arma relativa à mão
 const val CH_X = 12       // avanço do corpo
 const val CH_SIT = 13     // 0..1 sentado (etapa 3)
 const val CH_EYES = 14    // 1 = olhos fechados
-const val N_CH = 15
+const val CH_PULL = 15    // 0..1 corda do arco puxada (flecha encaixada acima de 0,05)
+const val N_CH = 16
 
 /** Uma curva: tempos normalizados (0..1 da duração do clipe) e valores, com easing entre os quadros. */
 class Track(val ch: Int, val t: FloatArray, val v: FloatArray, val ease: Int = Ease.IN_OUT) {
@@ -1342,11 +1343,59 @@ object SpriteClips {
         Track(CH_LEAN, f(0f, 0.38f, 0.5f, 0.75f, 1f), f(0f, -6f, 10f, 8f, 0f)),
     ))
 
+    /**
+     * Caçador, ataque básico (impacto/soltura em 0,5 como o ATTACK): estende o braço do arco para o alvo (0–0,22),
+     * puxa a corda (0,22–0,46), solta em 0,50 com um pequeno recuo e volta. CH_WEAPON mantém o arco em pé na mão.
+     */
+    val ATTACK_BOW = Clip("Ataque (arco)", 1.0f, false, arrayOf(
+        Track(CH_HAND_F, f(0f, 0.22f, 0.48f, 0.53f, 0.80f, 1f), f(0f, -80f, -82f, -76f, -80f, 0f)),
+        Track(CH_WEAPON, f(0f, 0.22f, 0.80f, 1f), f(0f, 70f, 70f, 0f)),
+        Track(CH_PULL, f(0f, 0.22f, 0.46f, 0.50f, 0.52f, 1f), f(0f, 0f, 1f, 1f, 0f, 0f)),
+        Track(CH_LEAN, f(0f, 0.22f, 0.48f, 0.53f, 0.80f, 1f), f(0f, -2f, -5f, 3f, 1f, 0f)),
+        Track(CH_X, f(0f, 0.48f, 0.55f, 0.80f, 1f), f(0f, -1f, -5f, -3f, 0f)),
+        Track(CH_SIT, f(0f, 0.22f, 0.48f, 0.80f, 1f), f(0f, 2f, 3f, 2f, 0f)),
+    ))
+
+    /** Disparo Duplo (0,9s, solturas em 0,34s e 0,56s): mira, solta, puxa de novo depressa e solta a segunda. */
+    val DISPARO_DUPLO = Clip("Disparo Duplo", 0.9f, false, arrayOf(
+        Track(CH_HAND_F, f(0f, 0.15f, 0.38f, 0.42f, 0.62f, 0.66f, 0.85f, 1f), f(0f, -80f, -80f, -74f, -80f, -74f, -80f, 0f)),
+        Track(CH_WEAPON, f(0f, 0.15f, 0.85f, 1f), f(0f, 70f, 70f, 0f)),
+        Track(CH_PULL, f(0f, 0.15f, 0.36f, 0.38f, 0.40f, 0.46f, 0.60f, 0.62f, 0.64f, 1f), f(0f, 0f, 1f, 1f, 0f, 0f, 1f, 1f, 0f, 0f)),
+        Track(CH_X, f(0f, 0.38f, 0.44f, 0.62f, 0.68f, 1f), f(0f, 0f, -4f, -1f, -5f, 0f)),
+        Track(CH_LEAN, f(0f, 0.38f, 0.44f, 0.62f, 0.68f, 1f), f(0f, -3f, 2f, -3f, 3f, 0f)),
+        Track(CH_SIT, f(0f, 0.15f, 0.85f, 1f), f(0f, 3f, 3f, 0f)),
+    ))
+
+    /** Chuva de Flechas (1,0s, soltura 0,40s): agacha, mira para o céu, solta; as flechas caem na área do alvo. */
+    val CHUVA = Clip("Chuva de Flechas", 1.0f, false, arrayOf(
+        Track(CH_HAND_F, f(0f, 0.20f, 0.42f, 0.46f, 0.80f, 1f), f(0f, -140f, -142f, -134f, -140f, 0f)),
+        Track(CH_WEAPON, f(0f, 0.20f, 0.80f, 1f), f(0f, 70f, 70f, 0f)),
+        Track(CH_PULL, f(0f, 0.20f, 0.38f, 0.40f, 0.42f, 1f), f(0f, 0f, 1f, 1f, 0f, 0f)),
+        Track(CH_LEAN, f(0f, 0.20f, 0.40f, 0.46f, 0.80f, 1f), f(0f, -8f, -10f, -5f, -6f, 0f)),
+        Track(CH_HEAD, f(0f, 0.20f, 0.80f, 1f), f(0f, -8f, -8f, 0f)),
+        Track(CH_SIT, f(0f, 0.20f, 0.40f, 0.46f, 0.80f, 1f), f(0f, 4f, 5f, 1f, 1f, 0f)),
+        Track(CH_SY, f(0f, 0.20f, 0.40f, 0.46f, 1f), f(1f, 0.97f, 0.96f, 1.03f, 1f)),
+    ))
+
+    /** Olho de Águia (0,8s, foco em 0,30s): ergue o arco à frente, agacha concentrando e se ergue atento. */
+    val OLHO_AGUIA = Clip("Olho de Águia", 0.8f, false, arrayOf(
+        Track(CH_HAND_F, f(0f, 0.30f, 0.40f, 0.75f, 1f), f(0f, -100f, -96f, -96f, 0f)),
+        Track(CH_WEAPON, f(0f, 0.30f, 0.75f, 1f), f(0f, 90f, 90f, 0f)),
+        Track(CH_SIT, f(0f, 0.30f, 0.40f, 0.75f, 1f), f(0f, 7f, 0f, 0f, 0f)),
+        Track(CH_HEAD, f(0f, 0.30f, 0.40f, 0.75f, 1f), f(0f, 6f, -6f, -4f, 0f)),
+        Track(CH_SY, f(0f, 0.30f, 0.40f, 0.75f, 1f), f(1f, 0.93f, 1.06f, 1.02f, 1f)),
+        Track(CH_SX, f(0f, 0.30f, 0.40f, 0.75f, 1f), f(1f, 1.05f, 0.97f, 1f, 1f)),
+        Track(CH_LEAN, f(0f, 0.30f, 0.40f, 0.75f, 1f), f(0f, 8f, 2f, 2f, 0f)),
+    ))
+
     /** Clipe de cada habilidade (null = conjurar genérico) e o instante em que ela solta/acerta (s). */
     val SKILL = arrayOfNulls<Clip>(13).also {
         it[1] = GOLPE_BRUTAL; it[2] = SISMICO; it[3] = FURIA; it[4] = SETA_FOGO; it[5] = TEMPESTADE; it[6] = NOVA
+        it[7] = DISPARO_DUPLO; it[8] = CHUVA; it[9] = OLHO_AGUIA
     }
-    val SKILL_HIT = floatArrayOf(0f, 0.42f, 0.48f, 0.30f, 0.36f, 0.35f, 0.40f, 0f, 0f, 0f, 0f, 0f, 0f)
+    val SKILL_HIT = floatArrayOf(0f, 0.42f, 0.48f, 0.30f, 0.36f, 0.35f, 0.40f, 0.34f, 0.40f, 0.30f, 0f, 0f, 0f)
+    /** Disparo Duplo: segunda soltura (s). */
+    const val DUPLO_HIT2 = 0.56f
     /** Brilho na ponta do cajado durante a carga (por habilidade; 0 = sem brilho). */
     val SKILL_GLOW = intArrayOf(0, 0, 0, 0, col(0xFFFF7043), col(0xFFFFEB3B), col(0xFF80DEEA), 0, 0, 0, 0, 0, 0)
 
@@ -1638,6 +1687,8 @@ class SpriteSkin(
     val handX: FloatArray = FloatArray(5), val handY: FloatArray = FloatArray(5), val staffTilt: FloatArray = FloatArray(5),
     /** Ponto do PNG da arma que fica na mão. */
     val gripX: Float = 0f, val gripY: Float = 0f,
+    /** Arco: pontas da corda no PNG da arma (x,y de cima, x,y de baixo); a corda e a flecha são desenhadas pelo jogo. */
+    val stringPts: FloatArray? = null,
 )
 
 class SpriteHero(private val res: Resources, private val art: Art) {
@@ -1695,6 +1746,31 @@ class SpriteHero(private val res: Resources, private val art: Art) {
             staffTilt = floatArrayOf(-8f, -8f, 12f, 8f, 8f),
             gripX = 36f, gripY = 95f,
         )
+        /** Caçador: folha art/source/cacador_sheet.png (sprite 242x420) + arco (cacador_arco.png) na mão; corda desenhada. */
+        val CACADOR = SpriteSkin(
+            intArrayOf(
+                R.drawable.cacador_s, R.drawable.cacador_se, R.drawable.cacador_e, R.drawable.cacador_ne,
+                R.drawable.cacador_n, R.drawable.cacador_nw, R.drawable.cacador_w, R.drawable.cacador_sw
+            ),
+            intArrayOf(R.drawable.cacador_lado_corpo, R.drawable.cacador_lado_braco, R.drawable.cacador_lado_perna_f, R.drawable.cacador_lado_perna_t),
+            intArrayOf(
+                R.drawable.cacador_frente_s_corpo, R.drawable.cacador_frente_s_perna_e, R.drawable.cacador_frente_s_perna_d,
+                R.drawable.cacador_frente_se_corpo, R.drawable.cacador_frente_se_perna_e, R.drawable.cacador_frente_se_perna_d,
+                R.drawable.cacador_frente_ne_corpo, R.drawable.cacador_frente_ne_perna_e, R.drawable.cacador_frente_ne_perna_d,
+                R.drawable.cacador_frente_n_corpo, R.drawable.cacador_frente_n_perna_e, R.drawable.cacador_frente_n_perna_d
+            ),
+            anchorX = 121f, baseY = 417f,
+            hipFX = 146f, hipFY = 314f, hipBX = 146f, hipBY = 314f, shoulderX = 136f, shoulderY = 234f,
+            fHipY = floatArrayOf(322f, 322f, 330f, 335f),
+            fLegL = floatArrayOf(96f, 111f, 105f, 75f),
+            fLegR = floatArrayOf(172f, 183f, 176f, 146f),
+            staffId = R.drawable.cacador_arco,
+            handX = floatArrayOf(52f, 70f, 162f, 218f, 194f),
+            handY = floatArrayOf(298f, 298f, 306f, 302f, 305f),
+            staffTilt = floatArrayOf(-8f, -8f, -4f, -14f, -14f),
+            gripX = 75.6f, gripY = 99.2f,
+            stringPts = floatArrayOf(47.1f, 21.1f, 14.9f, 181f),
+        )
         /** Aprendiz: folha art/source/aprendiz_sheet.png (sprite 262x420); de lado a perna de trás é cópia da da frente. */
         val APRENDIZ = SpriteSkin(
             intArrayOf(
@@ -1736,6 +1812,8 @@ class SpriteHero(private val res: Resources, private val art: Art) {
 
         // altura do conteúdo dos PNGs (igual nos visuais); âncora e pivôs ficam em SpriteSkin
         const val CONTENT_H = 412f
+        /** Quanto a corda vai para trás no puxão máximo (px do PNG do arco). */
+        const val BOW_PULL = 62f
         const val TARGET_H = 72f
 
         // ciclo de andar
@@ -1775,6 +1853,7 @@ class SpriteHero(private val res: Resources, private val art: Art) {
     private val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
     private val rect = RectF()
+    private val path = android.graphics.Path()
     private val anim = Animator()
     private val dust = Particles(48)
     private val rnd = kotlin.random.Random(11)
@@ -1812,8 +1891,9 @@ class SpriteHero(private val res: Resources, private val art: Art) {
      * O impacto do desenho coincide com o impacto do jogo (0,2s × scale).
      */
     fun attack(scale: Float = 1f, dx: Float = FX[dir], dy: Float = FY[dir], dist: Float = 40f) {
-        val staffSkin = skin.staffId != 0
-        anim.play(if (staffSkin) SpriteClips.ATTACK_STAFF else SpriteClips.ATTACK, true, 0.04f)
+        val bow = skin.stringPts != null
+        val staffSkin = skin.staffId != 0 && !bow
+        anim.play(if (bow) SpriteClips.ATTACK_BOW else if (staffSkin) SpriteClips.ATTACK_STAFF else SpriteClips.ATTACK, true, 0.04f)
         glowCol = if (staffSkin) col(0xFF90CAF9) else 0
         glowEnd = ATK_IMPACT
         oneShot = 1
@@ -2098,6 +2178,7 @@ class SpriteHero(private val res: Resources, private val art: Art) {
         c.translate(skin.handX[v] + dx, skin.handY[v] + dy)
         c.rotate(skin.staffTilt[v])
         c.drawBitmap(b, -skin.gripX, -skin.gripY, paint)
+        skin.stringPts?.let { bowString(c, it, anim.pose[CH_PULL].coerceIn(0f, 1f)) }
         if (glowK > 0f) {
             // carga na pedra do cajado: halo colorido pulsando + núcleo branco
             val tx = b.width / 2f - skin.gripX
@@ -2111,6 +2192,63 @@ class SpriteHero(private val res: Resources, private val art: Art) {
             c.drawCircle(tx, ty, 12f * glowK, fill)
         }
         c.restore()
+    }
+
+    /**
+     * Corda do arco (no espaço do PNG, já com o punho na origem): reta parada; puxada (pull 0..1) vira um "V" até a mão
+     * de trás, com a flecha encaixada apontando para fora da barriga do arco.
+     */
+    private fun bowString(c: Canvas, s: FloatArray, pull: Float) {
+        val tx = s[0] - skin.gripX
+        val ty = s[1] - skin.gripY
+        val bx = s[2] - skin.gripX
+        val by = s[3] - skin.gripY
+        var ux = bx - tx
+        var uy = by - ty
+        val ul = max(1f, kotlin.math.sqrt(ux * ux + uy * uy))
+        ux /= ul; uy /= ul
+        // normal para a barriga do arco (para o alvo)
+        val nx = uy
+        val ny = -ux
+        // ponto de descanso: projeção do punho (origem) na corda
+        val d = -tx * ux - ty * uy
+        val rx = tx + ux * d
+        val ry = ty + uy * d
+        val px = rx - nx * pull * BOW_PULL
+        val py = ry - ny * pull * BOW_PULL
+        stroke.strokeWidth = 3f
+        stroke.color = col(0xFFEDE6D6)
+        if (pull > 0.01f) {
+            c.drawLine(tx, ty, px, py, stroke)
+            c.drawLine(px, py, bx, by, stroke)
+        } else c.drawLine(tx, ty, bx, by, stroke)
+        if (pull < 0.05f) return
+        // flecha: haste, ponta e penas; a mão de trás (luva) segura na corda
+        val len = kotlin.math.abs(rx * nx + ry * ny) + pull * BOW_PULL + 34f
+        val hx = px + nx * len
+        val hy = py + ny * len
+        stroke.strokeWidth = 5f
+        stroke.color = col(0xFF6D4C41)
+        c.drawLine(px, py, hx, hy, stroke)
+        fill.color = col(0xFFCFD8DC)
+        path.reset()
+        path.moveTo(hx + nx * 14f, hy + ny * 14f)
+        path.lineTo(hx - ux * 7f, hy - uy * 7f)
+        path.lineTo(hx + ux * 7f, hy + uy * 7f)
+        path.close()
+        c.drawPath(path, fill)
+        stroke.strokeWidth = 4f
+        stroke.color = col(0xFFF5F5F5)
+        for (k in 0..1) {
+            val ox = px + nx * (6f + k * 7f)
+            val oy = py + ny * (6f + k * 7f)
+            c.drawLine(ox, oy, ox - nx * 7f - ux * 7f, oy - ny * 7f - uy * 7f, stroke)
+            c.drawLine(ox, oy, ox - nx * 7f + ux * 7f, oy - ny * 7f + uy * 7f, stroke)
+        }
+        fill.color = col(0xFF4E342E)
+        c.drawCircle(px, py, 10f, fill)
+        fill.color = col(0xFFE0A47A)
+        c.drawCircle(px - nx * 3f, py - ny * 3f, 5f, fill)
     }
 
     private fun part(c: Canvas, b: Bitmap, px: Float, py: Float, ang: Float, lift: Float, pt: Paint) {

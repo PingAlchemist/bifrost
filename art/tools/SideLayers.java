@@ -11,7 +11,8 @@ import java.io.File;
  * As áreas escondidas que aparecem ao girar (atrás do braço / sob a lâmina / topo das pernas sob a túnica)
  * são preenchidas copiando pixels vizinhos da mesma camada.
  * Todas as camadas têm o mesmo tamanho do sprite; parado, a remontagem é idêntica ao original.
- * Uso: java SideLayers.java <guerreiro_e.png> <pasta res> <pasta debug> [perfil=guerreiro|aprendiz|mago]
+ * Uso: java SideLayers.java <guerreiro_e.png> <pasta res> <pasta debug> [perfil=guerreiro|aprendiz|mago|cacador]
+ * Perfil cacador: como o aprendiz (uma perna), túnica verde com barra dourada; o arco é desenhado pelo jogo.
  * Perfil mago: mesmo esquema do aprendiz (uma perna), manto azul com barra dourada; o cajado é desenhado pelo jogo.
  * Perfil aprendiz: grava aprendiz_lado_*.png; a vista de lado só mostra uma perna, então a de trás é cópia da da frente.
  */
@@ -27,6 +28,8 @@ public class SideLayers {
     static boolean apr = false;
     /** Mago: a túnica é o manto azul (barra dourada) em vez do bege. */
     static boolean robe = false;
+    /** Caçador: túnica/capa verde (barra dourada). */
+    static boolean green = false;
     static int SLEEVE_Y = 236;
     /** Aprendiz: faixa de colunas da perna; abaixo da túnica, fora dela, é corpo (barra da túnica atrás da lâmina). */
     static int LEG_X0 = 0, LEG_X1 = 9999;
@@ -76,10 +79,30 @@ public class SideLayers {
         BLADE_POLY = new int[][]{{0, 0}, {1, 0}, {1, 1}};
     }
 
+    /** Medidas do caçador (sprite 242x420): sem lâmina (o arco é desenhado pelo jogo na mão). */
+    static void cacador() {
+        apr = true;
+        green = true;
+        HEM_Y = 312;
+        SHOULDER = new int[]{136, 234};
+        HIP_F = new int[]{146, 314};
+        HIP_B = new int[]{146, 314};
+        BLADE_Y = 9999;
+        SLEEVE_Y = 232;
+        LEG_X0 = 100;
+        LEG_X1 = 210;
+        ARM_POLY = new int[][]{
+                {114, 228}, {158, 228}, {166, 252}, {174, 270}, {176, 300}, {178, 318}, {169, 330}, {148, 331},
+                {124, 320}, {116, 296}, {112, 262}
+        };
+        BLADE_POLY = new int[][]{{0, 0}, {1, 0}, {1, 1}};
+    }
+
     public static void main(String[] a) throws Exception {
         String pre = "";
         if (a.length > 3 && a[3].equals("aprendiz")) { aprendiz(); pre = "aprendiz_"; }
         if (a.length > 3 && a[3].equals("mago")) { mago(); pre = "mago_"; }
+        if (a.length > 3 && a[3].equals("cacador")) { cacador(); pre = "cacador_"; }
         BufferedImage src0 = ImageIO.read(new File(a[0]));
         W = src0.getWidth();
         H = src0.getHeight();
@@ -126,7 +149,7 @@ public class SideLayers {
             } else if (inArm[i]) {
                 boolean tunic = apr ? y < SLEEVE_Y : isBlue(c) || (isLight(c) && y <= 334);
                 if (tunic) body[i] = c; else arm[i] = c;
-            } else if (aboveHem || x < LEG_X0 || x > LEG_X1) body[i] = c;
+            } else if (aboveHem || x < LEG_X0 || x > LEG_X1 || (green && y <= HEM_Y + 28 && isTunic(c))) body[i] = c;
             else if (apr || x < splitX(y)) legF[i] = c;
             else legB[i] = c;
         }
@@ -134,7 +157,9 @@ public class SideLayers {
         for (int i = 0; i < armPx.length; i++) armPx[i] = (arm[i] >>> 24) != 0;
 
         // corpo: preenche o que estava atrás do braço (só onde o braço cobria, então parado não muda nada)
-        fillHoles(body, armPx, 240, HEM_Y + 10);
+        int[] before = body.clone();
+        fillHoles(body, armPx, green ? 226 : 240, HEM_Y + (green ? 22 : 10));
+        if (green) smoothFilled(body, before);
         // pernas: preenche o que estava sob a lâmina
         fillHoles(legF, armPx, HEM_Y - 8, H);
         fillHoles(legB, armPx, HEM_Y - 8, H);
@@ -177,10 +202,33 @@ public class SideLayers {
                 int i = y * W + x;
                 if (!hole[i] || layer[i] != 0) continue;
                 int l = -1, rr = -1;
-                for (int k = x - 1; k >= Math.max(0, x - 60); k--) { int c = layer[y * W + k]; if (!hole[y * W + k] && (c >>> 24) > 200 && lum(c) > 45) { l = c; break; } }
-                for (int k = x + 1; k < Math.min(W, x + 60); k++) { int c = layer[y * W + k]; if (!hole[y * W + k] && (c >>> 24) > 200 && lum(c) > 45) { rr = c; break; } }
+                int minLum = green ? 18 : 45; // caçador: calça marrom-escura também serve de amostra
+                for (int k = x - 1; k >= Math.max(0, x - 60); k--) { int c = layer[y * W + k]; if (!hole[y * W + k] && (c >>> 24) > 200 && lum(c) > minLum) { l = c; break; } }
+                for (int k = x + 1; k < Math.min(W, x + 60); k++) { int c = layer[y * W + k]; if (!hole[y * W + k] && (c >>> 24) > 200 && lum(c) > minLum) { rr = c; break; } }
                 if (l != -1 && rr != -1) layer[i] = l;
-                else if (robe && (l != -1 || rr != -1)) layer[i] = l != -1 ? l : rr; // manto: basta um lado
+                else if ((robe || green) && (l != -1 || rr != -1)) layer[i] = l != -1 ? l : rr; // manto: basta um lado
+            }
+        }
+    }
+
+    /** Caçador: o preenchimento por linha deixa listras; suaviza só os pixels preenchidos (média 7x7, 3 passadas). */
+    static void smoothFilled(int[] layer, int[] before) {
+        boolean[] filled = new boolean[layer.length];
+        for (int i = 0; i < layer.length; i++) filled[i] = before[i] == 0 && layer[i] != 0;
+        for (int it = 0; it < 3; it++) {
+            int[] src = layer.clone();
+            for (int y = 0; y < H; y++) for (int x = 0; x < W; x++) {
+                int i = y * W + x;
+                if (!filled[i]) continue;
+                int r = 0, g = 0, b = 0, n = 0;
+                for (int dy = -3; dy <= 3; dy++) for (int dx = -3; dx <= 3; dx++) {
+                    int xx = x + dx, yy = y + dy;
+                    if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+                    int c = src[yy * W + xx];
+                    if ((c >>> 24) < 250) continue;
+                    r += (c >> 16) & 255; g += (c >> 8) & 255; b += c & 255; n++;
+                }
+                if (n > 0) layer[i] = 0xFF000000 | (r / n << 16) | (g / n << 8) | (b / n);
             }
         }
     }
@@ -217,6 +265,7 @@ public class SideLayers {
     static boolean isTunic(int c) {
         int r = (c >> 16) & 255, g = (c >> 8) & 255, b = c & 255;
         if (robe) return isBlue(c) || isGold(c);
+        if (green) return (g > r + 18 && g > b + 18) || isGold(c);
         return lum(c) > 120 && g > 100 && r - b > 35 && r - b < 130 && r - g < 60;
     }
 

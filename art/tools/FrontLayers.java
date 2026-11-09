@@ -9,7 +9,8 @@ import java.io.File;
  * Vistas frente / 3/4 frente / 3/4 costas / costas: separa as duas pernas logo abaixo da barra da túnica
  * (perna esquerda e direita) e deixa o resto como camada do corpo (sem as pernas, para não desenhar em dobro).
  * A espada continua no corpo (polígono por vista).
- * Uso: java FrontLayers.java <pasta res> <pasta debug> [perfil=guerreiro|aprendiz|mago]
+ * Uso: java FrontLayers.java <pasta res> <pasta debug> [perfil=guerreiro|aprendiz|mago|cacador]
+ * Perfil cacador: túnica verde com barra dourada; o arco é desenhado pelo jogo.
  * Perfil aprendiz: lê aprendiz_*.png, grava aprendiz_frente_*.png (túnica bege, mãos de pele em vez de guarda dourada).
  */
 public class FrontLayers {
@@ -43,13 +44,22 @@ public class FrontLayers {
             new View("ne", 85, 210, 140, new int[][]{{0, 0}, {1, 0}, {1, 1}}),
             new View("n", 75, 205, 140, new int[][]{{0, 0}, {1, 0}, {1, 1}}),
     };
+    /** Caçador (sprite 242x420): sem lâmina; túnica verde com barra dourada. */
+    static final View[] VIEWS_CAC = {
+            new View("s", 55, 212, 133, new int[][]{{0, 0}, {1, 0}, {1, 1}}),
+            new View("se", 72, 225, 145, new int[][]{{0, 0}, {1, 0}, {1, 1}}),
+            new View("ne", 68, 220, 137, new int[][]{{0, 0}, {1, 0}, {1, 1}}),
+            new View("n", 40, 175, 108, new int[][]{{0, 0}, {1, 0}, {1, 1}}),
+    };
     static boolean apr = false;
     static boolean robe = false;
+    static boolean green = false;
 
     public static void main(String[] a) throws Exception {
         String pre = "guerreiro_", outPre = "";
         if (a.length > 2 && a[2].equals("aprendiz")) { apr = true; VIEWS = VIEWS_APR; pre = "aprendiz_"; outPre = "aprendiz_"; }
         if (a.length > 2 && a[2].equals("mago")) { apr = true; robe = true; VIEWS = VIEWS_MAGO; pre = "mago_"; outPre = "mago_"; }
+        if (a.length > 2 && a[2].equals("cacador")) { apr = true; green = true; VIEWS = VIEWS_CAC; pre = "cacador_"; outPre = "cacador_"; }
         File res = new File(a[0]);
         File dbg = new File(a[1]);
         dbg.mkdirs();
@@ -113,7 +123,7 @@ public class FrontLayers {
                 int i = y * W + x;
                 int c = s[i];
                 if ((c >>> 24) == 0) continue;
-                boolean leg = x >= vw.legL && x <= vw.legR && y > tb[x] && !blade.contains(x + 0.5, y + 0.5) && (apr ? !isSkin(c) : !isLight(c) && !isGold(c));
+                boolean leg = x >= vw.legL && x <= vw.legR && y > tb[x] && !blade.contains(x + 0.5, y + 0.5) && (apr ? !isSkin(c) : !isLight(c) && !isGold(c)) && !(green && y <= 345 && isTunic(c));
                 if (!leg) body[i] = c;
                 else if (x < vw.split) { legL[i] = c; lx0 = Math.min(lx0, x); lx1 = Math.max(lx1, x); }
                 else { legR[i] = c; rx0 = Math.min(rx0, x); rx1 = Math.max(rx1, x); }
@@ -190,6 +200,7 @@ public class FrontLayers {
     static boolean isTunic(int c) {
         int r = (c >> 16) & 255, g = (c >> 8) & 255, b = c & 255;
         if (robe) return isBlue(c) || isGold(c);
+        if (green) return (g > r + 18 && g > b + 18) || isGold(c);
         return lum(c) > 120 && g > 100 && r - b > 35 && r - b < 130 && r - g < 60;
     }
 

@@ -11,8 +11,8 @@ android {
         applicationId = "br.com.bifrost"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "1.4.0" // igual a VERSAO em Defs.kt
+        versionCode = 7
+        versionName = "1.5.0" // igual a VERSAO em Defs.kt
     }
 
     buildTypes {

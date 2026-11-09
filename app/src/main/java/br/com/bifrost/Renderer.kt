@@ -593,11 +593,12 @@ class Renderer(private val g: Game, private val res: Resources) {
     private var deadT = 0f
 
     /** Classes com visual em sprites (as outras usam o boneco desenhado em código). */
-    private fun hasSprite(job: Job) = job == Job.APRENDIZ || job == Job.GUERREIRO || job == Job.MAGO
+    private fun hasSprite(job: Job) = job == Job.APRENDIZ || job == Job.GUERREIRO || job == Job.MAGO || job == Job.CACADOR
 
     private fun skinOf(job: Job) = when (job) {
         Job.APRENDIZ -> SpriteHero.APRENDIZ
         Job.MAGO -> SpriteHero.MAGO
+        Job.CACADOR -> SpriteHero.CACADOR
         else -> SpriteHero.GUERREIRO
     }
     private var prevAtkSeq = -1
@@ -684,6 +685,7 @@ class Renderer(private val g: Game, private val res: Resources) {
     private fun testSkills() = when (g.p.job) {
         Job.GUERREIRO -> intArrayOf(1, 2, 3)
         Job.MAGO -> intArrayOf(4, 5, 6)
+        Job.CACADOR -> intArrayOf(7, 8, 9)
         else -> IntArray(0)
     }
     private fun testCount() = testNames.size + testSkills().size
@@ -1979,8 +1981,8 @@ class Renderer(private val g: Game, private val res: Resources) {
     // SELEÇÃO DE PERSONAGEM
     // =====================================================================
     /** Sprite de frente nos slots e na tela inicial: 0 = Aprendiz, 1 = Guerreiro, 2 = Mago. */
-    private val slotBmp = arrayOfNulls<Bitmap>(3)
-    private var slotStaff: Bitmap? = null
+    private val slotBmp = arrayOfNulls<Bitmap>(4)
+    private val slotStaff = arrayOfNulls<Bitmap>(4)
     private val actSlot: Array<() -> Unit> = Array(SLOTS) { i ->
         {
             // tocar de novo no slot já escolhido: joga (ou cria, se vazio)
@@ -2060,7 +2062,7 @@ class Renderer(private val g: Game, private val res: Resources) {
 
     private fun frontHero(c: Canvas, job: Job, x: Float, feet: Float, h: Float) {
         if (hasSprite(job)) {
-            val i = when (job) { Job.APRENDIZ -> 0; Job.MAGO -> 2; else -> 1 }
+            val i = when (job) { Job.APRENDIZ -> 0; Job.MAGO -> 2; Job.CACADOR -> 3; else -> 1 }
             val b = slotBmp[i] ?: BitmapFactory.decodeResource(res, skinOf(job).ids[SpriteHero.S],
                 BitmapFactory.Options().apply { inScaled = false })?.also { slotBmp[i] = it }
             if (b != null) {
@@ -2069,15 +2071,19 @@ class Renderer(private val g: Game, private val res: Resources) {
                 dstR.set(x - b.width * k / 2, feet - b.height * k, x + b.width * k / 2, feet)
                 val sk = skinOf(job)
                 if (sk.staffId != 0) {
-                    // cajado atrás do corpo, na mão da vista de frente
-                    val st = slotStaff ?: BitmapFactory.decodeResource(res, sk.staffId,
-                        BitmapFactory.Options().apply { inScaled = false })?.also { slotStaff = it }
+                    // cajado/arco atrás do corpo, na mão da vista de frente
+                    val st = slotStaff[i] ?: BitmapFactory.decodeResource(res, sk.staffId,
+                        BitmapFactory.Options().apply { inScaled = false })?.also { slotStaff[i] = it }
                     if (st != null) {
                         c.save()
                         c.translate(dstR.left + sk.handX[0] * k, dstR.top + sk.handY[0] * k)
                         c.rotate(sk.staffTilt[0])
                         c.scale(k, k)
                         c.drawBitmap(st, -sk.gripX, -sk.gripY, bmpPaint)
+                        sk.stringPts?.let { sp ->
+                            stroke.strokeWidth = 3f; stroke.color = col(0xFFEDE6D6)
+                            c.drawLine(sp[0] - sk.gripX, sp[1] - sk.gripY, sp[2] - sk.gripX, sp[3] - sk.gripY, stroke)
+                        }
                         c.restore()
                     }
                 }
