@@ -271,13 +271,13 @@ class MapDef(
 
 val MAPS = arrayOf(
     MapDef(0, "Vila Aurora", "Cidade", 1536f, 1024f, Style.SAND, Style.SAND_DARK, 0, intArrayOf(), -1, 0),
-    MapDef(1, "Campo de Aprendizes", "Nv 1-8", 1672f, 941f, col(0xFF7CB342), col(0xFF75AA3E), 1, intArrayOf(24, 25, 26), -1, 12),
-    MapDef(2, "Campos de Aurora", "Nv 6-15", 2400f, 1600f, Style.GRASS, col(0xFF86A24F), 1, intArrayOf(0, 1, 2), 3, 18),
-    MapDef(3, "Bosque Sussurrante", "Nv 12-28", 2400f, 1600f, col(0xFF3D7A25), col(0xFF387221), 2, intArrayOf(4, 5, 6), 7, 18),
-    MapDef(4, "Dunas de SÃ¡lix", "Nv 26-46", 2400f, 1600f, col(0xFFE6C88A), col(0xFFDFC07F), 3, intArrayOf(8, 9, 10), 11, 18),
-    MapDef(5, "Picos Gelados", "Nv 42-65", 2400f, 1600f, col(0xFFE3EEF5), col(0xFFD9E7F0), 4, intArrayOf(12, 13, 14), 15, 16),
-    MapDef(6, "RuÃ­nas Sombrias", "Nv 60-86", 2400f, 1600f, col(0xFF4E4A5A), col(0xFF484454), 5, intArrayOf(16, 17, 18), 19, 16),
-    MapDef(7, "Covil do DragÃ£o", "Nv 80-99", 2400f, 1600f, col(0xFF4A2E26), col(0xFF422820), 6, intArrayOf(20, 21, 22), 23, 15),
+    MapDef(1, "Campo de Aprendizes", "Nv 1-8", 1672f, 941f, col(0xFF7CB342), col(0xFF75AA3E), 1, intArrayOf(24, 25, 26), -1, 24),
+    MapDef(2, "Campos de Aurora", "Nv 6-15", 2400f, 1600f, Style.GRASS, col(0xFF86A24F), 1, intArrayOf(0, 1, 2), 3, 36),
+    MapDef(3, "Bosque Sussurrante", "Nv 12-28", 2400f, 1600f, col(0xFF3D7A25), col(0xFF387221), 2, intArrayOf(4, 5, 6), 7, 36),
+    MapDef(4, "Dunas de SÃ¡lix", "Nv 26-46", 2400f, 1600f, col(0xFFE6C88A), col(0xFFDFC07F), 3, intArrayOf(8, 9, 10), 11, 36),
+    MapDef(5, "Picos Gelados", "Nv 42-65", 2400f, 1600f, col(0xFFE3EEF5), col(0xFFD9E7F0), 4, intArrayOf(12, 13, 14), 15, 32),
+    MapDef(6, "RuÃ­nas Sombrias", "Nv 60-86", 2400f, 1600f, col(0xFF4E4A5A), col(0xFF484454), 5, intArrayOf(16, 17, 18), 19, 32),
+    MapDef(7, "Covil do DragÃ£o", "Nv 80-99", 2400f, 1600f, col(0xFF4A2E26), col(0xFF422820), 6, intArrayOf(20, 21, 22), 23, 30),
 )
 
 // ---------- Equipamentos ----------

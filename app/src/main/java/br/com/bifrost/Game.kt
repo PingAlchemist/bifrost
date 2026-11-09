@@ -1093,7 +1093,7 @@ class Game {
         }
         if (normal < map.maxMobs && spawnT <= 0f) {
             spawnMob(MONSTERS[map.mobs[rnd.nextInt(map.mobs.size)]])
-            spawnT = 2.5f
+            spawnT = 1.25f
         }
         if (map.boss >= 0 && !hasBoss) {
             bossT[map.id] -= dt
