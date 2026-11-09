@@ -524,21 +524,22 @@ class Game {
     /** Põe em navX/navY o próximo ponto rumo a (tx,ty); refaz o caminho se o destino andar ou a cada 0,5s. */
     private fun navigate(tx: Float, ty: Float, dt: Float) {
         navX = tx; navY = ty
-        if (map.id != 1) { navFail = false; return }
+        val nav = navGrid()
+        if (nav == null) { navFail = false; return }
         navT -= dt
         val moved = navTx.isNaN() || abs(tx - navTx) > 24f || abs(ty - navTy) > 24f
         if (moved || navT <= 0f) {
             navTx = tx; navTy = ty; navT = 0.5f
             navFail = false
-            if (Forest.lineClear(px, py, tx, ty)) { navN = 0; return }
-            navN = Forest.path(px, py, tx, ty, navPts)
+            if (nav.lineClear(px, py, tx, ty)) { navN = 0; return }
+            navN = nav.path(px, py, tx, ty, navPts)
             navI = 0
             if (navN == 0) { navFail = true; return }
         }
         if (navN == 0) return
         while (navI < navN - 1 && dist(px, py, navPts[navI * 2], navPts[navI * 2 + 1]) < 12f) navI++
         // atalho: se já enxerga o ponto seguinte, vai direto nele
-        if (navI < navN - 1 && Forest.lineClear(px, py, navPts[navI * 2 + 2], navPts[navI * 2 + 3])) navI++
+        if (navI < navN - 1 && nav.lineClear(px, py, navPts[navI * 2 + 2], navPts[navI * 2 + 3])) navI++
         navX = navPts[navI * 2]; navY = navPts[navI * 2 + 1]
     }
 
@@ -554,7 +555,18 @@ class Game {
     }
 
     /** Pode pisar? (só a floresta tem colisão por enquanto) */
-    fun walkable(x: Float, y: Float): Boolean = map.id != 1 || Forest.walkable(x, y)
+    fun walkable(x: Float, y: Float): Boolean = when (map.id) {
+        0 -> Town.walkable(x, y)
+        1 -> Forest.walkable(x, y)
+        else -> true
+    }
+
+    /** Grade de navegação do mapa atual (só a vila e a floresta têm obstáculos). */
+    private fun navGrid(): NavGrid? = when {
+        map.id == 0 && Town.loaded -> Town.nav
+        map.id == 1 && Forest.loaded -> Forest.nav
+        else -> null
+    }
 
     /** Move o herói respeitando a colisão; se bloquear, tenta deslizar só em X ou só em Y. */
     private fun tryMove(nx0: Float, ny0: Float): Boolean {
@@ -750,21 +762,24 @@ class Game {
         p.zeny += z
         if (!p.fx) snd(Audio.S_COIN)
         if (p.fx && z > 0) spawnDrop(m.x, m.y, 0, z, "", C_GOLD)
-        if (rnd.nextFloat() < (if (d.boss) 1f else 0.35f)) {
-            val n = if (d.boss) 5 else 1
+        val nLoot = dropCount(if (d.boss) 1f else 0.35f) * (if (d.boss) 5 else 1)
+        if (nLoot > 0) {
+            val n = nLoot
             p.loot[d.id] += n
-            if (d.boss) addLog("Obteve 5x ${d.loot}", C_WHITE)
+            if (d.boss || n > 1) addLog("Obteve ${n}x ${d.loot}", C_WHITE)
             if (p.fx) spawnDrop(m.x, m.y, 1, n.toLong(), d.loot, col(0xFFFFE0B2))
         }
-        if (rnd.nextFloat() < (if (d.boss) 0.6f else 0.05f)) {
+        val nPot = dropCount(if (d.boss) 0.6f else 0.05f) * (if (d.boss) 5 else 1)
+        if (nPot > 0) {
             val t = potionTierFor(d.lv)
-            val n = if (d.boss) 5 else 1
+            val n = nPot
             p.potions[t] += n
             addLog("Obteve ${n}x ${POTIONS[t].nome}", C_WHITE)
             if (p.fx) spawnDrop(m.x, m.y, 1, n.toLong(), POTIONS[t].nome, POTIONS[t].cor)
         }
-        if (rnd.nextFloat() < (if (d.boss) 0.10f else 0.005f)) {
-            p.cards[d.id]++
+        val nCard = dropCount(if (d.boss) 0.10f else 0.005f)
+        if (nCard > 0) {
+            p.cards[d.id] += nCard
             addLog("★ Obteve ${d.cardNome}! (${d.card.texto(d.cardV)})", C_GOLD)
             heroText("★ CARTA! ★", C_GOLD, true)
             if (!p.fx) snd(Audio.S_CARD)
@@ -775,6 +790,13 @@ class Game {
             addLog("${d.nome} foi derrotado!", C_GOLD)
         }
         gainExp(e, j)
+    }
+
+    /** Quantos caem: chance × DROP_RATE; a parte inteira sempre cai e a fração é sorteada. */
+    private fun dropCount(chance: Float): Int {
+        val c = chance * DROP_RATE
+        val n = c.toInt()
+        return if (rnd.nextFloat() < c - n) n + 1 else n
     }
 
     fun gainExp(e: Long, j: Long, quiet: Boolean = false): IntArray {
@@ -1434,6 +1456,10 @@ class Game {
             // floresta: chega pela estrada da esquerda (vindo da Vila) ou no cruzamento do centro
             id == 1 && entry != 2 -> { px = Forest.ENTRY_LEFT_X; py = Forest.ENTRY_LEFT_Y }
             id == 1 -> { px = Forest.CENTER_X; py = Forest.CENTER_Y }
+            // vila: pelos portões oeste/leste ou na praça, abaixo da fonte
+            id == 0 && entry == 0 -> { px = Town.ENTRY_W_X; py = Town.GATE_Y }
+            id == 0 && entry == 1 -> { px = Town.ENTRY_E_X; py = Town.GATE_Y }
+            id == 0 -> { px = Town.SPAWN_X; py = Town.SPAWN_Y }
             entry == 0 -> { px = 320f; py = map.h / 2 }
             entry == 1 -> { px = map.w - 320f; py = map.h / 2 }
             else -> { px = map.w / 2; py = map.h / 2 + (if (id == 0) 130f else 0f) }
@@ -1443,8 +1469,8 @@ class Game {
         portals.clear()
         when (id) {
             0 -> {
-                portals.add(Portal(e, map.h / 2, 1, 0))
-                portals.add(Portal(map.w - e, map.h / 2, 2, 0))
+                portals.add(Portal(Town.PORTAL_W_X, Town.GATE_Y, 1, 0))
+                portals.add(Portal(Town.PORTAL_E_X, Town.GATE_Y, 2, 0))
             }
             // floresta: a estrada da esquerda volta para a Vila (as outras duas saídas ficam "em breve")
             1 -> portals.add(Portal(Forest.PORTAL_LEFT_X, Forest.PORTAL_LEFT_Y, 0, 0))
@@ -1459,13 +1485,14 @@ class Game {
         }
         npcs.clear()
         if (id == 0) {
-            npcs.add(Npc("Curandeira", 800f, 400f, null, col(0xFFFFFFFF), col(0xFFF48FB1), 5))
-            npcs.add(Npc("Mercador", 520f, 480f, Panel.LOJA, col(0xFF8D6E63), col(0xFF4E342E), 6))
-            npcs.add(Npc("Ferreiro", 1080f, 480f, Panel.FERREIRO, col(0xFF5D4037), col(0xFF212121), 7))
-            npcs.add(Npc("Mestre de Classes", 520f, 760f, Panel.MESTRE, col(0xFF283593), col(0xFFECEFF1), 8))
-            npcs.add(Npc("Teleportadora", 1080f, 760f, Panel.TELEPORTE, col(0xFF00838F), col(0xFFFFCA28), 9))
+            // na praça, em volta da fonte (posições em art/debug/vila_colisao.png)
+            npcs.add(Npc("Curandeira", 755f, 372f, null, col(0xFFFFFFFF), col(0xFFF48FB1), 5))
+            npcs.add(Npc("Mercador", 455f, 520f, Panel.LOJA, col(0xFF8D6E63), col(0xFF4E342E), 6))
+            npcs.add(Npc("Ferreiro", 1055f, 520f, Panel.FERREIRO, col(0xFF5D4037), col(0xFF212121), 7))
+            npcs.add(Npc("Mestre de Classes", 650f, 705f, Panel.MESTRE, col(0xFF283593), col(0xFFECEFF1), 8))
+            npcs.add(Npc("Teleportadora", 862f, 705f, Panel.TELEPORTE, col(0xFF00838F), col(0xFFFFCA28), 9))
         }
-        decos = if (id == 1) emptyList() else genDecos(map)
+        decos = if (id <= 1) emptyList() else genDecos(map) // vila e floresta vêm prontas da pintura
         if (id > 0) repeat(map.maxMobs) { spawnMob(MONSTERS[map.mobs[it % map.mobs.size]]) }
         if (started) snd(Audio.S_TELEPORT)
         onMapChange?.invoke(id)
@@ -1499,24 +1526,6 @@ class Game {
             4 -> intArrayOf(11, 11, 4, 2) to intArrayOf(23, 23)
             5 -> intArrayOf(5, 6, 6, 7) to intArrayOf(25, 13)
             else -> intArrayOf(12, 12, 7) to intArrayOf(22, 22, 13)
-        }
-        if (m.id == 0) {
-            val houses = listOf(230f to 260f, 620f to 210f, 980f to 210f, 1370f to 260f, 230f to 960f, 1370f to 960f, 640f to 1000f, 960f to 1000f)
-            houses.forEachIndexed { i, (x, y) -> list.add(Deco(x, y, 8, Style.HOUSE_SCALE, true, i)) }
-            list.add(Deco(800f, 590f, 9, 1f, true, 0))
-            // árvores só na faixa de grama fora das muretas
-            var placed = 0
-            var tries = 0
-            while (placed < 26 && tries < 400) {
-                tries++
-                val side = r.nextInt(4)
-                val x = when (side) { 0 -> 20f + r.nextFloat() * 40f; 1 -> m.w - 60f + r.nextFloat() * 40f; else -> 40f + r.nextFloat() * (m.w - 80f) }
-                val y = when (side) { 2 -> 50f + r.nextFloat() * 40f; 3 -> m.h - 20f + r.nextFloat() * 15f; else -> 60f + r.nextFloat() * (m.h - 80f) }
-                if (abs(y - m.h / 2) < 140f && (side == 0 || side == 1)) continue
-                list.add(Deco(x, y, if (r.nextInt(3) == 0) 10 else 0, Style.TREE_SCALE * (0.8f + r.nextFloat() * 0.4f), true, r.nextInt(1000)))
-                placed++
-            }
-            return list
         }
         val nTall = if (m.theme == 2) 120 else 75
         repeat(nTall) {

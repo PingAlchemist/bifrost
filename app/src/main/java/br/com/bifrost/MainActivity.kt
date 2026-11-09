@@ -38,6 +38,7 @@ class MainActivity : Activity() {
         if (Build.VERSION.SDK_INT >= 30) window.setDecorFitsSystemWindows(false)
         // mapa da floresta (camadas e colisão) antes de o jogo começar a spawnar monstros
         Forest.load(resources)
+        Town.load(resources)
         game = Game()
         migrate()
         refreshSlots()
@@ -211,6 +212,7 @@ class MainActivity : Activity() {
         if (game.selecting && !game.title) game.title = true // seleção -> tela inicial
         else if (game.selecting) @Suppress("DEPRECATION") super.onBackPressed()
         else if (game.panel != Panel.NONE && game.panel != Panel.MORTE) game.panel = Panel.NONE
+        else if (game.panel == Panel.NONE) switchChar() // no jogo: volta para a seleção
         else @Suppress("DEPRECATION") super.onBackPressed()
     }
 }

@@ -7,7 +7,10 @@ import kotlin.math.sqrt
 fun col(v: Long): Int = v.toInt()
 
 /** TESTE: multiplicador de EXP (base e classe), online e offline. Volte para 1f quando terminar os testes. */
-const val EXP_RATE = 5f
+const val EXP_RATE = 15f
+
+/** TESTE: multiplicador de drop (itens, poções e cartas; chance acima de 100% vira quantidade). Volte para 1f depois. */
+const val DROP_RATE = 15f
 
 /**
  * Estilo visual centralizado: paleta base (10 cores, tons pastel/terrosos), tamanhos e HUD.
@@ -258,7 +261,7 @@ class MapDef(
 )
 
 val MAPS = arrayOf(
-    MapDef(0, "Vila Aurora", "Cidade", 1600f, 1100f, Style.SAND, Style.SAND_DARK, 0, intArrayOf(), -1, 0),
+    MapDef(0, "Vila Aurora", "Cidade", 1536f, 1024f, Style.SAND, Style.SAND_DARK, 0, intArrayOf(), -1, 0),
     MapDef(1, "Campo de Aprendizes", "Nv 1-8", 1672f, 941f, col(0xFF7CB342), col(0xFF75AA3E), 1, intArrayOf(24, 25, 26), -1, 12),
     MapDef(2, "Campos de Aurora", "Nv 6-15", 2400f, 1600f, Style.GRASS, col(0xFF86A24F), 1, intArrayOf(0, 1, 2), 3, 18),
     MapDef(3, "Bosque Sussurrante", "Nv 12-28", 2400f, 1600f, col(0xFF3D7A25), col(0xFF387221), 2, intArrayOf(4, 5, 6), 7, 18),

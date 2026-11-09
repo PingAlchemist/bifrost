@@ -72,15 +72,15 @@ object Offline {
             exp += (n * d.exp * mul).toLong()
             jexp += (n * d.jexp * mul).toLong()
             zeny += n * d.zeny
-            val l = sample(n * 0.35f, rnd)
+            val l = sample(n * 0.35f * DROP_RATE, rnd)
             p.loot[id] += l
             lootTotal += l
-            val c = sample(n * CARD_RATE, rnd)
+            val c = sample(n * CARD_RATE * DROP_RATE, rnd)
             if (c > 0) {
                 p.cards[id] += c
                 cards.add("${d.cardNome} x$c")
             }
-            val pd = sample(n * 0.03f, rnd)
+            val pd = sample(n * 0.03f * DROP_RATE, rnd)
             if (pd > 0) {
                 p.potions[potionTierFor(d.lv)] += pd
                 potsGanhas += pd

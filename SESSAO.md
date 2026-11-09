@@ -27,8 +27,17 @@ emulador NÃO roda aqui (virtualização desligada na BIOS) — testar no celula
   `SpriteTool … 420 aprendiz`, `SideLayers <aprendiz_e.png> <res> art/debug aprendiz`, `FrontLayers <res> art/debug aprendiz`.
 - **Seleção de personagem**: até 3 slots (`save0..2`), save antigo migrado para o slot 1; "Trocar personagem" no painel Status.
 
+- **Tela inicial** (logo + ponte arco-íris) antes da seleção; botão **Sair** no HUD e voltar do celular levam à seleção.
+- **Floresta**: borda de baixo bloqueia (não entra sob as copas); herói navega com A* (`NavGrid` em Art.kt).
+- **Vila Aurora refeita** a partir de `art/vila/Vila Fantasia e a Fonte Azul.png` (1536x1024, 1:1): a pintura é o chão
+  (`vila_chao.png`), objeto `Town` em Art.kt com colisão por retângulos (casas, postes, bancos, barris, floreiras,
+  pilares) + elipse da fonte; muros com portões oeste/leste. Conferência: `art/debug/vila_colisao.png`.
+  `art/source/vila_layout.png` é a planta da vila ANTIGA.
+- **Fluxo**: tudo direto na `main`; todo deploy = push + `Bifrost.apk`. APK deve ser assinado com a
+  `debug.keystore` do outro PC (copiar para `C:\Users\Diego\.android\`) para atualizar no celular sem perder o save.
+
 ## Pendente / combinado
-- **EXP 5x para testes**: `const val EXP_RATE = 5f` em `Defs.kt` — voltar para `1f` depois.
+- **EXP e drop 15x para testes**: `EXP_RATE = 15f` e `DROP_RATE = 15f` em `Defs.kt` — voltar para `1f` depois.
 - Usuário vai mandar print/vídeo da floresta integrada e do combate novo para próximos ajustes.
 - Música: as faixas oficiais do RO (C:\Gravity\Ragnarok\BGM) NÃO podem ser usadas/recriadas. Opções oferecidas e
   ainda sem resposta: (1) composições originais no mesmo clima, (2) opção "música personalizada" tocando arquivos do celular.

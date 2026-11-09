@@ -45,7 +45,6 @@ class Renderer(private val g: Game, private val res: Resources) {
     private val srcR = Rect()
     private val dstR = RectF()
     private val path = Path()
-    private val path2 = Path()
 
     // ---------- y-sort sem alocação ----------
     private val items = arrayOfNulls<Any>(512)
@@ -198,7 +197,10 @@ class Renderer(private val g: Game, private val res: Resources) {
         val b = camY + hh
 
         val forest = m.id == 1 && Forest.loaded
-        if (forest) {
+        if (m.id == 0 && Town.loaded) {
+            // vila: a pintura inteira é o chão
+            drawRegion(c, Town.ground, l, t, r, b)
+        } else if (forest) {
             // chão (com sombras) + borda de floresta de cima (o personagem sempre fica na frente dela)
             drawRegion(c, Forest.ground, l, t, r, b)
             drawRegion(c, Forest.top, l, t, r, b)
@@ -351,13 +353,6 @@ class Renderer(private val g: Game, private val res: Resources) {
             }
             iy++
         }
-        if (m.id == 0) {
-            art.oval(c, 420f, 330f, 1180f, 850f, col(0xFFB5A07A))
-            art.oval(c, 450f, 350f, 1150f, 830f, col(0xFFBDA984))
-            fill.color = col(0xFFB5A07A)
-            c.drawRect(1100f, 500f, m.w, 600f, fill)
-            c.drawRect(0f, 500f, 500f, 600f, fill)
-        }
         for (i in g.decos.indices) {
             val d = g.decos[i]
             if (!d.tall && d.x > l - 60 && d.x < r + 60 && d.y > t - 60 && d.y < b + 60) art.deco(c, d, g.time)
@@ -390,17 +385,10 @@ class Renderer(private val g: Game, private val res: Resources) {
         c.scale(sc, sc)
         val rnd = Random(m.id * 131 + 17)
         art.anim = true
-        if (m.id == 0) {
-            c.drawColor(Style.GRASS)
-            noise(c, rnd, 0f, 0f, m.w, m.h, Style.GRASS)
-            details(c, rnd, 0f, 0f, m.w, m.h, 1, 2200f)
-            buildTown(c, rnd, m)
-        } else {
-            c.drawColor(m.g1)
-            noise(c, rnd, 0f, 0f, m.w, m.h, m.g1)
-            if (m.theme == 1 || m.theme == 2) dirtRoad(c, rnd, m)
-            details(c, rnd, 0f, 0f, m.w, m.h, m.theme, 2600f)
-        }
+        c.drawColor(m.g1)
+        noise(c, rnd, 0f, 0f, m.w, m.h, m.g1)
+        if (m.theme == 1 || m.theme == 2) dirtRoad(c, rnd, m)
+        details(c, rnd, 0f, 0f, m.w, m.h, m.theme, 2600f)
         for (i in g.decos.indices) {
             val d = g.decos[i]
             if (!d.tall && d.kind != 22) art.deco(c, d, 0f)
@@ -495,148 +483,6 @@ class Renderer(private val g: Game, private val res: Resources) {
         c.drawPath(path, stroke)
         stroke.strokeWidth = 56f; stroke.color = art.alpha(art.mix(m.g1, Style.SAND, 0.6f), 230)
         c.drawPath(path, stroke)
-    }
-
-    private fun buildTown(c: Canvas, rnd: Random, m: MapDef) {
-        val L = 70f
-        val T = 110f
-        val R = m.w - 70f
-        val B = m.h - 50f
-        // área de areia com borda orgânica
-        fill.color = Style.SAND
-        rect.set(L - 6f, T - 6f, R + 6f, B + 6f); c.drawRoundRect(rect, 30f, 30f, fill)
-        var x = L
-        while (x < R) {
-            c.drawCircle(x + rnd.nextFloat() * 10f, T - 6f + rnd.nextFloat() * 6f, 12f + rnd.nextFloat() * 8f, fill)
-            c.drawCircle(x + rnd.nextFloat() * 10f, B + 6f - rnd.nextFloat() * 6f, 12f + rnd.nextFloat() * 8f, fill)
-            x += 24f
-        }
-        // saídas oeste/leste em areia
-        rect.set(0f, m.h / 2 - 70f, L + 10f, m.h / 2 + 70f); c.drawRect(rect, fill)
-        rect.set(R - 10f, m.h / 2 - 70f, m.w, m.h / 2 + 70f); c.drawRect(rect, fill)
-        c.save()
-        c.clipRect(L - 10f, T - 10f, R + 10f, B + 10f)
-        noise(c, rnd, L, T, R, B, Style.SAND)
-        c.restore()
-
-        // caminhos de terra: praça -> casas e praça -> saídas (duas passadas p/ não marcar emendas)
-        val cx = 800f
-        val cy = 590f
-        for (pass in 0..1) {
-            stroke.strokeWidth = if (pass == 0) 56f else 42f
-            stroke.color = if (pass == 0) art.alpha(Style.SAND_DARK, 200) else art.mix(Style.SAND_DARK, Style.SAND, 0.45f)
-            dirtPath(c, cx, cy, 0f, m.h / 2, 0f)
-            dirtPath(c, cx, cy, m.w, m.h / 2, 0f)
-            for (i in g.decos.indices) {
-                val d = g.decos[i]
-                if (d.kind == 8) dirtPath(c, cx, cy, d.x, d.y + 6f, if (d.seed % 2 == 0) 40f else -40f)
-            }
-        }
-        // pedrinhas no chão de terra
-        val pr = Random(99)
-        repeat(260) { pebble(c, L + pr.nextFloat() * (R - L), T + pr.nextFloat() * (B - T), pr) }
-
-        plaza(c, rnd, cx, cy, 370f, 270f)
-        walls(c, L, T, R, B, m)
-
-        // tufos na transição grama/areia
-        repeat(160) {
-            val side = rnd.nextInt(4)
-            val px = when (side) { 0 -> L + rnd.nextFloat() * 12f; 1 -> R - rnd.nextFloat() * 12f; else -> L + rnd.nextFloat() * (R - L) }
-            val py = when (side) { 2 -> T + rnd.nextFloat() * 10f; 3 -> B - rnd.nextFloat() * 10f; else -> T + rnd.nextFloat() * (B - T) }
-            stroke.strokeWidth = 1.6f; stroke.color = Style.GRASS_DARK
-            c.drawLine(px, py, px - 3f, py - 7f, stroke); c.drawLine(px, py, px + 3f, py - 7f, stroke)
-        }
-    }
-
-    private fun dirtPath(c: Canvas, x0: Float, y0: Float, x1: Float, y1: Float, bend: Float) {
-        path2.reset()
-        path2.moveTo(x0, y0)
-        val mx = (x0 + x1) / 2
-        val my = (y0 + y1) / 2
-        path2.quadTo(mx + bend, my - bend * 0.5f, x1, y1)
-        c.drawPath(path2, stroke)
-    }
-
-    /** Praça de lajotas irregulares desenhadas em código. */
-    private fun plaza(c: Canvas, rnd: Random, cx: Float, cy: Float, rx: Float, ry: Float) {
-        path.reset()
-        rect.set(cx - rx, cy - ry, cx + rx, cy + ry)
-        path.addOval(rect, Path.Direction.CW)
-        c.save()
-        c.clipPath(path)
-        fill.color = art.darker(Style.STONE, 0.84f)
-        c.drawRect(rect, fill)
-        val tw = 27f
-        val th = 19f
-        var row = 0
-        var y = cy - ry
-        while (y < cy + ry) {
-            var x = cx - rx - (if (row % 2 == 0) 0f else tw / 2)
-            while (x < cx + rx) {
-                val j = 3.2f
-                val tww = tw * (0.7f + rnd.nextFloat() * 0.6f)
-                path2.reset()
-                path2.moveTo(x + 2f + rnd.nextFloat() * j, y + 2f + rnd.nextFloat() * j)
-                path2.lineTo(x + tww - 2f - rnd.nextFloat() * j, y + 2f + rnd.nextFloat() * j)
-                path2.lineTo(x + tww - 2f - rnd.nextFloat() * j, y + th - 2f - rnd.nextFloat() * j)
-                path2.lineTo(x + 2f + rnd.nextFloat() * j, y + th - 2f - rnd.nextFloat() * j)
-                path2.close()
-                val v = rnd.nextFloat()
-                fill.color = if (v < 0.5f) art.mix(Style.STONE, Color.WHITE, v * 0.22f)
-                else art.mix(Style.STONE, Style.SAND, (v - 0.5f) * 0.5f)
-                c.drawPath(path2, fill)
-                fill.color = col(0x12FFFFFF)
-                c.drawRect(x + 4f, y + 3f, x + tww - 8f, y + 5f, fill)
-                x += tww
-            }
-            y += th
-            row++
-        }
-        c.restore()
-        rect.set(cx - rx, cy - ry, cx + rx, cy + ry)
-        stroke.strokeWidth = 12f; stroke.color = art.darker(Style.STONE, 0.78f); c.drawOval(rect, stroke)
-        rect.inset(-4f, -4f)
-        stroke.strokeWidth = 3f; stroke.color = art.mix(Style.STONE, Color.WHITE, 0.35f); c.drawOval(rect, stroke)
-    }
-
-    /** Muretas baixas de pedra delimitando a cidade (com aberturas nas saídas). */
-    private fun walls(c: Canvas, L: Float, T: Float, R: Float, B: Float, m: MapDef) {
-        val top = art.mix(Style.STONE, Color.WHITE, 0.25f)
-        val front = art.darker(Style.STONE, 0.8f)
-        val gapY0 = m.h / 2 - 90f
-        val gapY1 = m.h / 2 + 90f
-        // horizontais (cima e baixo)
-        for (wy in floatArrayOf(T, B)) {
-            var x = L
-            while (x < R - 4f) {
-                fill.color = col(0x33000000); c.drawRect(x, wy + 4f, x + 42f, wy + 10f, fill)
-                fill.color = front; c.drawRect(x, wy - 9f, x + 42f, wy + 4f, fill)
-                fill.color = top; c.drawRect(x, wy - 16f, x + 42f, wy - 9f, fill)
-                stroke.strokeWidth = 1f; stroke.color = col(0x44000000)
-                c.drawLine(x + 42f, wy - 16f, x + 42f, wy + 4f, stroke)
-                c.drawLine(x + 21f, wy - 9f, x + 21f, wy + 4f, stroke)
-                x += 44f
-            }
-        }
-        // verticais (esquerda e direita), abertas no meio
-        for (wx in floatArrayOf(L, R)) {
-            var y = T
-            while (y < B - 4f) {
-                if (y + 28f > gapY0 && y < gapY1) { y += 30f; continue }
-                fill.color = col(0x33000000); c.drawRect(wx - 6f, y + 4f, wx + 12f, y + 32f, fill)
-                fill.color = front; c.drawRect(wx - 8f, y, wx + 8f, y + 28f, fill)
-                fill.color = top; c.drawRect(wx - 8f, y, wx + 8f, y + 18f, fill)
-                stroke.strokeWidth = 1f; stroke.color = col(0x44000000)
-                c.drawLine(wx - 8f, y + 28f, wx + 8f, y + 28f, stroke)
-                y += 30f
-            }
-            // pilares na abertura
-            for (py in floatArrayOf(gapY0, gapY1)) {
-                fill.color = front; c.drawRect(wx - 11f, py - 22f, wx + 11f, py + 4f, fill)
-                fill.color = top; c.drawRect(wx - 11f, py - 30f, wx + 11f, py - 22f, fill)
-            }
-        }
     }
 
     // ---------- sombras de nuvens ----------
@@ -830,6 +676,7 @@ class Renderer(private val g: Game, private val res: Resources) {
     private var testDirT = 0f
     private var testTrig = 0f
     private val testSprite = SpriteHero(res, art)
+    private val actSair: () -> Unit = { g.onSwitchChar?.invoke() }
     private val actTest: () -> Unit = { testMode = !testMode; testIdx = 0; testDir = 0; testDirT = 0f }
     private val actTestNext: () -> Unit = { testIdx = (testIdx + 1) % testNames.size; testTrig = 0f }
     private val actTestPrev: () -> Unit = { testIdx = (testIdx + testNames.size - 1) % testNames.size; testTrig = 0f }
@@ -1143,8 +990,11 @@ class Renderer(private val g: Game, private val res: Resources) {
         val bw = 88f
         val gap = 6f
         val menuLeft = R - 4 * (bw + gap) + gap - (54f + gap) - (64f + gap)
+        // Sair: salva e volta para a seleção de personagem
+        val sairX = menuLeft - 64f - gap
+        button(c, sairX, T, 64f, 42f, "Sair", true, BTN_RED, 15f, actSair)
         button(c, menuLeft, T, 64f, 42f, "Anim", true, if (testMode) BTN_GOLD else Style.HUD_BTN, 15f, actTest)
-        if (timeScale < 1f) button(c, menuLeft - 92f, T, 86f, 42f, "0,25x ✕", true, BTN_GOLD, 15f, actSlowOff)
+        if (timeScale < 1f) button(c, sairX - 92f, T, 86f, 42f, "0,25x ✕", true, BTN_GOLD, 15f, actSlowOff)
         button(c, menuLeft + 64f + gap, T, 54f, 42f, "FX", true, if (fx) BTN_GREEN else col(0xFF757575), 16f, actFx)
         val labels = MENU
         for (i in labels.indices) {
@@ -1156,8 +1006,8 @@ class Renderer(private val g: Game, private val res: Resources) {
 
         // ---------- título do mapa numa faixa própria (entre a janela e os botões) ----------
         val gapL = L + 350f
-        val tcx = (gapL + menuLeft - 10f) / 2
-        val maxW = menuLeft - 10f - gapL
+        val tcx = (gapL + sairX - 10f) / 2
+        val maxW = sairX - 10f - gapL
         var ts = 20f
         text.textSize = ts
         var tw = text.measureText(sTitle)
