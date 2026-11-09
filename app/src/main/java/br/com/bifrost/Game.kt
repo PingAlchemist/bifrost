@@ -1,11 +1,15 @@
 package br.com.bifrost
 
+import org.json.JSONObject
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sign
 import kotlin.math.sqrt
 import kotlin.random.Random
+
+/** Quantidade de slots de personagem na tela de seleção. */
+const val SLOTS = 3
 
 enum class Panel { NONE, STATUS, SKILLS, ITENS, LOJA, FERREIRO, MESTRE, TELEPORTE, OFFLINE, MORTE }
 
@@ -234,6 +238,17 @@ class Game {
     /** Liga/desliga música alterado no Status. */
     var onMusicSetting: (() -> Unit)? = null
     private var started = false
+
+    // ----- seleção de personagem -----
+    /** Tela de seleção ativa: o jogo fica parado e o Renderer desenha os slots. */
+    var selecting = true
+    /** Resumo de cada slot (null = vazio), lido dos saves. */
+    val slots = arrayOfNulls<Player>(SLOTS)
+    var selSlot = 0
+    var onPlay: ((Int) -> Unit)? = null
+    var onCreateChar: ((Int) -> Unit)? = null
+    var onDeleteChar: ((Int) -> Unit)? = null
+    var onSwitchChar: (() -> Unit)? = null
     val rnd = Random(System.nanoTime())
 
     private fun snd(id: Int, rate: Float = 1f) {
@@ -1250,8 +1265,28 @@ class Game {
         addLog("Agora você é um ${j.nome}! Sua arma virou ${p.weaponName()}.", C_GOLD)
     }
 
-    fun resetAll() {
+    /** Entra com um personagem salvo: zera o estado do jogo e começa no mapa dele. */
+    fun loadChar(o: JSONObject) {
         p.fromJson(Player().toJson())
+        p.fromJson(o)
+        cd.fill(0f)
+        bossT.fill(150f)
+        dead = false
+        panel = Panel.NONE
+        report = null
+        lvlFx = 0f
+        atkAnim = 0f
+        saveT = 0f
+        log.clear()
+        started = false
+        start()
+        selecting = false
+    }
+
+    fun resetAll() {
+        val nome = p.nome
+        p.fromJson(Player().toJson())
+        p.nome = nome
         p.recalc()
         p.hp = p.maxHp; p.sp = p.maxSp
         cd.fill(0f)
