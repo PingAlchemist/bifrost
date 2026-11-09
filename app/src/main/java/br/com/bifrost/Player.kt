@@ -6,6 +6,7 @@ import kotlin.math.max
 import kotlin.math.min
 
 class Player {
+    var nome = "Herói"
     var job = Job.APRENDIZ
     var lv = 1
     var jlv = 1
@@ -128,6 +129,7 @@ class Player {
     // ----- salvamento -----
     fun toJson(): JSONObject = JSONObject().apply {
         put("v", 2)
+        put("nome", nome)
         put("zoom", zoom.toDouble()); put("fx", fx); put("vibra", vibra)
         put("som", som); put("musica", musica)
         put("job", job.name); put("lv", lv); put("jlv", jlv); put("exp", exp); put("jexp", jexp)
@@ -144,6 +146,7 @@ class Player {
     }
 
     fun fromJson(o: JSONObject) {
+        nome = o.optString("nome", "Herói").ifBlank { "Herói" }
         job = runCatching { Job.valueOf(o.optString("job", "APRENDIZ")) }.getOrDefault(Job.APRENDIZ)
         lv = o.optInt("lv", 1); jlv = o.optInt("jlv", 1)
         exp = o.optLong("exp", 0); jexp = o.optLong("jexp", 0)

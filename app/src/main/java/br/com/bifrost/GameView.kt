@@ -63,17 +63,24 @@ class GameView(ctx: Context, private val g: Game) : View(ctx) {
         val dt = if (lastNs == 0L) 0.016f else ((now - lastNs) / 1e9f).coerceIn(0f, 0.05f)
         lastNs = now
         if (holdId >= 0) {
-            if (g.panel == Panel.NONE && !g.dead) g.moveTo(r.worldX(holdX), r.worldY(holdY))
+            if (g.panel == Panel.NONE && !g.dead && !g.selecting) g.moveTo(r.worldX(holdX), r.worldY(holdY))
             else holdId = -1
         }
         // combate lento (modo de teste): o jogo inteiro roda na escala de tempo escolhida
         val sdt = dt * r.timeScale
-        g.update(sdt)
+        // na seleção de personagem o jogo fica parado
+        if (!g.selecting) g.update(sdt)
         c.save()
         c.scale(scale, scale)
         r.draw(c, vw, sdt)
         c.restore()
         postInvalidateOnAnimation()
+    }
+
+    /** Troca de personagem: limpa o estado visual do anterior. */
+    fun resetChar() {
+        r.resetChar()
+        holdId = -1
     }
 
     fun resume() {
@@ -107,6 +114,7 @@ class GameView(ctx: Context, private val g: Game) : View(ctx) {
 
     private fun down(id: Int, x: Float, y: Float) {
         if (r.tap(x, y)) return
+        if (g.selecting) return
         if (g.panel != Panel.NONE || g.dead || holdId >= 0) return
         if (!g.tapWorld(r.worldX(x), r.worldY(y))) {
             holdId = id

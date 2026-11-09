@@ -2,6 +2,7 @@ package br.com.bifrost
 
 import android.content.res.Resources
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -141,6 +142,10 @@ class Renderer(private val g: Game, private val res: Resources) {
         frameDt = dt
         nBtn = 0
         if (resetArm > 0f) resetArm -= dt
+        if (g.selecting) {
+            drawSelect(c)
+            return
+        }
         drawWorld(c)
         drawHud(c, dt)
         if (g.panel != Panel.NONE) drawPanel(c)
@@ -1069,7 +1074,7 @@ class Renderer(private val g: Game, private val res: Resources) {
     private fun refreshHudStrings() {
         val p = g.p
         if (p.lv != cLv) { cLv = p.lv; sLv = "Base Lv ${p.lv}" }
-        if (p.jlv != cJlv || p.job != cJob) { cJlv = p.jlv; cJob = p.job; sJlv = "Job Lv ${p.jlv}" }
+        if (p.jlv != cJlv || p.job != cJob) { cJlv = p.jlv; cJob = p.job; sJlv = "${p.job.nome} · Job Lv ${p.jlv}" }
         if (p.zeny != cZeny) { cZeny = p.zeny; sZeny = "Zeny ${fmt(p.zeny)}" }
         if (p.hp != cHp || p.maxHp != cMhp) { cHp = p.hp; cMhp = p.maxHp; sHp = "HP ${p.hp} / ${p.maxHp}" }
         if (p.sp != cSp || p.maxSp != cMsp) { cSp = p.sp; cMsp = p.maxSp; sSp = "SP ${p.sp} / ${p.maxSp}" }
@@ -1104,8 +1109,11 @@ class Renderer(private val g: Game, private val res: Resources) {
 
         // ---------- janela de status ----------
         window(c, L, T, 340f, 134f, null)
-        label(c, "Herói", L + 12f, T + 26f, 19f, Style.HUD_INK)
-        label(c, p.job.nome, L + 80f, T + 26f, 16f, Style.HUD_INK2)
+        // nome do personagem (encolhe se for comprido); a classe fica na linha do Job Lv
+        var ns = 19f
+        text.textSize = ns
+        while (text.measureText(p.nome) > 170f && ns > 12f) { ns -= 1f; text.textSize = ns }
+        label(c, p.nome, L + 12f, T + 26f, ns, Style.HUD_INK)
         label(c, sLv, L + 190f, T + 26f, 16f, Style.HUD_INK)
         label(c, sJlv, L + 12f, T + 48f, 15f, Style.HUD_INK2)
         label(c, sZeny, L + 190f, T + 48f, 15f, col(0xFF8D6E00))
@@ -1414,6 +1422,10 @@ class Renderer(private val g: Game, private val res: Resources) {
         button(c, rx, by, 180f, 42f, "Auto-poção: " + if (p.autoPot) "ON" else "OFF", true, if (p.autoPot) BTN_GREEN else Style.HUD_BTN, 15f) {
             p.autoPot = !p.autoPot
         }
+        button(c, x, by, 220f, 42f, "Trocar personagem", true, BTN_GOLD, 15f) {
+            g.panel = Panel.NONE
+            g.onSwitchChar?.invoke()
+        }
         button(c, rx + 188f, by, 208f, 42f, if (resetArm > 0f) "Toque de novo p/ apagar" else "Recomeçar do zero", true, BTN_RED, 14f) {
             if (resetArm > 0f) {
                 resetArm = 0f
@@ -1685,6 +1697,98 @@ class Renderer(private val g: Game, private val res: Resources) {
         val msg = if (g.lastLoss > 0) "Perdeu ${fmt(g.lastLoss)} de EXP base (1%)." else "Aprendizes não perdem EXP ao morrer."
         label(c, msg, pl + pw / 2, pt + 122f, 16f, if (g.lastLoss > 0) col(0xFFC62828) else col(0xFF2E7D32), Paint.Align.CENTER)
         button(c, pl + pw / 2 - 130f, pt + 166f, 260f, 52f, "Retornar à Vila", true, BTN_GOLD, 19f) { g.respawn() }
+    }
+
+    // =====================================================================
+    // SELEÇÃO DE PERSONAGEM
+    // =====================================================================
+    private var slotBmp: Bitmap? = null
+    private val actSlot: Array<() -> Unit> = Array(SLOTS) { i ->
+        {
+            // tocar de novo no slot já escolhido: joga (ou cria, se vazio)
+            if (g.selSlot == i) {
+                if (g.slots[i] != null) g.onPlay?.invoke(i) else g.onCreateChar?.invoke(i)
+            }
+            g.selSlot = i
+        }
+    }
+
+    /** Ao entrar com outro personagem: esquece barras/animações do anterior. */
+    fun resetChar() {
+        seenLv = -1
+        prevHp = -1
+        lastPx = Float.NaN
+        camMap = -1
+        resetArm = 0f
+        testMode = false
+    }
+
+    private fun drawSelect(c: Canvas) {
+        fill.color = col(0xFF1A2230); c.drawRect(0f, 0f, vw, VH, fill)
+        fill.color = col(0xFF243047); c.drawRect(0f, VH * 0.55f, vw, VH, fill)
+        val L = safeL + 20f
+        val R = vw - safeR - 20f
+        val T = safeT + 12f
+        val B = VH - safeB - 12f
+        val cx = (L + R) / 2
+        outlined(c, "Bifrost", cx, T + 46f, 40f, col(0xFFFFF59D))
+        label(c, "Selecione seu personagem", cx, T + 76f, 17f, col(0xFFCFD8DC), Paint.Align.CENTER)
+
+        val gap = 24f
+        val cw = min(320f, (R - L - 2 * gap) / SLOTS)
+        val ch = min(400f, B - T - 96f - 76f)
+        val x0 = cx - (SLOTS * cw + (SLOTS - 1) * gap) / 2
+        val y0 = T + 96f
+        for (i in 0 until SLOTS) {
+            val x = x0 + i * (cw + gap)
+            val sp = g.slots[i]
+            window(c, x, y0, cw, ch, "Slot ${i + 1}")
+            if (i == g.selSlot) {
+                rect.set(x - 3f, y0 - 3f, x + cw + 3f, y0 + ch + 3f)
+                stroke.strokeWidth = 3f; stroke.color = col(0xFFFFD54F)
+                c.drawRoundRect(rect, Style.HUD_RADIUS + 2f, Style.HUD_RADIUS + 2f, stroke)
+            }
+            addBtn(x, y0, x + cw, y0 + ch, actSlot[i])
+            val mx = x + cw / 2
+            if (sp == null) {
+                art.circle(c, mx, y0 + ch / 2 - 16f, 38f, col(0x225874A0))
+                label(c, "+", mx, y0 + ch / 2 - 1f, 44f, Style.HUD_BTN, Paint.Align.CENTER)
+                label(c, "Criar personagem", mx, y0 + ch / 2 + 56f, 17f, INK2, Paint.Align.CENTER)
+                continue
+            }
+            val feet = y0 + 36f + (ch - 36f) * 0.58f
+            slotHero(c, sp, mx, feet, (ch - 36f) * 0.48f)
+            label(c, sp.nome, mx, feet + 36f, 20f, INK, Paint.Align.CENTER)
+            label(c, sp.job.nome, mx, feet + 60f, 16f, INK2, Paint.Align.CENTER)
+            label(c, "Base Lv ${sp.lv}  ·  Job Lv ${sp.jlv}", mx, feet + 86f, 15f, INK, Paint.Align.CENTER)
+            label(c, MAPS[sp.map.coerceIn(0, MAPS.size - 1)].nome, mx, feet + 110f, 14f, INK2, Paint.Align.CENTER)
+        }
+
+        // botões
+        val has = g.slots[g.selSlot] != null
+        val bw = 190f
+        val bg = 16f
+        val bx = cx - (3 * bw + 2 * bg) / 2
+        val by = y0 + ch + 20f
+        button(c, bx, by, bw, 52f, "Jogar", has, BTN_GREEN, 20f) { g.onPlay?.invoke(g.selSlot) }
+        button(c, bx + bw + bg, by, bw, 52f, "Criar", !has, Style.HUD_BTN, 20f) { g.onCreateChar?.invoke(g.selSlot) }
+        button(c, bx + 2 * (bw + bg), by, bw, 52f, "Apagar", has, BTN_RED, 20f) { g.onDeleteChar?.invoke(g.selSlot) }
+    }
+
+    /** Boneco parado de frente no slot: sprite (Aprendiz/Guerreiro) ou boneco desenhado. */
+    private fun slotHero(c: Canvas, sp: Player, x: Float, feet: Float, h: Float) {
+        if (sp.job == Job.APRENDIZ || sp.job == Job.GUERREIRO) {
+            val b = slotBmp ?: BitmapFactory.decodeResource(res, R.drawable.guerreiro_s,
+                BitmapFactory.Options().apply { inScaled = false })?.also { slotBmp = it }
+            if (b != null) {
+                art.oval(c, x - h * 0.22f, feet - h * 0.05f, x + h * 0.22f, feet + h * 0.05f, col(0x44000000))
+                val k = h / b.height
+                dstR.set(x - b.width * k / 2, feet - b.height * k, x + b.width * k / 2, feet)
+                c.drawBitmap(b, null, dstR, bmpPaint)
+                return
+            }
+        }
+        art.hero(c, x, feet, 1f, sp.job.cor, sp.job.cabelo, sp.job.hat, weaponFor(sp.job), 0f, false, 0f, h / 66f, 0f)
     }
 
     // =====================================================================
