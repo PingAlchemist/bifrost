@@ -1809,17 +1809,18 @@ object Forest {
             topEdge[x] = t; botEdge[x] = b
         }
         loaded = true
+        buildNav()
     }
 
     /**
-     * Pode pisar aqui? Floresta de cima e de baixo bloqueiam (embaixo dá para entrar um pouco, passando atrás das copas);
-     * árvores e pedras bloqueiam só numa elipse pequena na base; arbustos são passáveis.
+     * Pode pisar aqui? Floresta de cima e de baixo bloqueiam (embaixo para na borda: as copas são desenhadas por cima
+     * dos personagens e escondiam herói e monstros); árvores e pedras bloqueiam numa elipse na base; arbustos são passáveis.
      */
     fun walkable(x: Float, y: Float): Boolean {
         if (!loaded) return true
         val xi = x.toInt().coerceIn(0, W - 1)
         if (y < topEdge[xi] + 8f) return false
-        if (y > botEdge[xi] + 44f) return false
+        if (y > botEdge[xi] - 6f) return false
         for (i in 0 until N) {
             val t = TYPE[i]
             if (t == T_BUSH) continue
@@ -1830,6 +1831,163 @@ object Forest {
             if (dx * dx + dy * dy < 1f) return false
         }
         return true
+    }
+
+    /** Pisável com folga r em volta (monstros nascem e passeiam longe de troncos, pedras e da borda da mata). */
+    fun open(x: Float, y: Float, r: Float): Boolean =
+        walkable(x, y) && walkable(x - r, y) && walkable(x + r, y) && walkable(x, y - r * 0.6f) && walkable(x, y + r * 0.6f)
+
+    // ---------- navegação do herói: A* numa grade de 10px, depois corta caminho onde a linha é livre ----------
+    private const val NC = 10
+    private const val GW = W / NC + 1
+    private const val GH = H / NC + 1
+    private val free = BooleanArray(GW * GH)
+    private val gCost = FloatArray(GW * GH)
+    private val came = IntArray(GW * GH)
+    private val seen = IntArray(GW * GH)
+    private var stamp = 0
+    private val hk = IntArray(GW * GH * 4)
+    private val hp = FloatArray(GW * GH * 4)
+    private var hn = 0
+    private val cells = IntArray(GW * GH)
+    private val NBX = intArrayOf(1, -1, 0, 0, 1, 1, -1, -1)
+    private val NBY = intArrayOf(0, 0, 1, -1, 1, -1, 1, -1)
+
+    /** Célula livre = o centro e 6px em volta são pisáveis (o herói não raspa nos troncos). */
+    private fun buildNav() {
+        for (cy in 0 until GH) for (cx in 0 until GW) {
+            val x = cx * NC + NC / 2f
+            val y = cy * NC + NC / 2f
+            free[cy * GW + cx] = x < W && y < H && open(x, y, 6f)
+        }
+    }
+
+    private fun cellFree(x: Float, y: Float): Boolean {
+        val cx = (x / NC).toInt()
+        val cy = (y / NC).toInt()
+        return cx in 0 until GW && cy in 0 until GH && free[cy * GW + cx]
+    }
+
+    /** Linha reta livre? Ignora os primeiros 12px (o herói pode estar encostado num obstáculo). */
+    fun lineClear(x0: Float, y0: Float, x1: Float, y1: Float): Boolean {
+        if (!loaded) return true
+        val d = kotlin.math.sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0))
+        var s = 12f
+        while (s < d) {
+            val k = s / d
+            if (!cellFree(x0 + (x1 - x0) * k, y0 + (y1 - y0) * k)) return false
+            s += 5f
+        }
+        return true
+    }
+
+    /** Célula livre mais próxima (até 6 células de distância), -1 se não houver. */
+    private fun nearestFree(x: Float, y: Float): Int {
+        val cx = (x / NC).toInt().coerceIn(0, GW - 1)
+        val cy = (y / NC).toInt().coerceIn(0, GH - 1)
+        for (r in 0..6) for (dy in -r..r) for (dx in -r..r) {
+            if (max(abs(dx), abs(dy)) != r) continue
+            val nx = cx + dx
+            val ny = cy + dy
+            if (nx in 0 until GW && ny in 0 until GH && free[ny * GW + nx]) return ny * GW + nx
+        }
+        return -1
+    }
+
+    private fun push(c: Int, f: Float) {
+        var i = hn++
+        while (i > 0) {
+            val p = (i - 1) / 2
+            if (hp[p] <= f) break
+            hk[i] = hk[p]; hp[i] = hp[p]; i = p
+        }
+        hk[i] = c; hp[i] = f
+    }
+
+    private fun pop(): Int {
+        val top = hk[0]
+        hn--
+        val c = hk[hn]
+        val f = hp[hn]
+        var i = 0
+        while (true) {
+            var m = i * 2 + 1
+            if (m >= hn) break
+            if (m + 1 < hn && hp[m + 1] < hp[m]) m++
+            if (hp[m] >= f) break
+            hk[i] = hk[m]; hp[i] = hp[m]; i = m
+        }
+        hk[i] = c; hp[i] = f
+        return top
+    }
+
+    /**
+     * Caminho de (sx,sy) até (tx,ty) contornando obstáculos: grava os pontos (x,y) em out e devolve quantos são;
+     * 0 = inalcançável. O último ponto é o próprio destino (ou o ponto livre mais perto dele).
+     */
+    fun path(sx: Float, sy: Float, tx: Float, ty: Float, out: FloatArray): Int {
+        if (!loaded) return 0
+        val s = nearestFree(sx, sy)
+        val g = nearestFree(tx, ty)
+        if (s < 0 || g < 0) return 0
+        stamp++
+        hn = 0
+        gCost[s] = 0f; came[s] = -1; seen[s] = stamp
+        val gx = g % GW
+        val gy = g / GW
+        push(s, 0f)
+        var found = false
+        while (hn > 0 && hn < hk.size - 8) {
+            val c = pop()
+            if (c == g) { found = true; break }
+            if (seen[c] == -stamp) continue // já fechada
+            seen[c] = -stamp
+            val cx = c % GW
+            val cy = c / GW
+            for (k in 0 until 8) {
+                val nx = cx + NBX[k]
+                val ny = cy + NBY[k]
+                if (nx !in 0 until GW || ny !in 0 until GH) continue
+                val n = ny * GW + nx
+                if (!free[n] || seen[n] == -stamp) continue
+                // diagonal só se as duas laterais estiverem livres (não corta quina de tronco)
+                if (k >= 4 && (!free[cy * GW + nx] || !free[ny * GW + cx])) continue
+                val ng = gCost[c] + (if (k >= 4) 1.414f else 1f)
+                if (seen[n] == stamp && ng >= gCost[n]) continue
+                seen[n] = stamp; gCost[n] = ng; came[n] = c
+                val ddx = abs(nx - gx).toFloat()
+                val ddy = abs(ny - gy).toFloat()
+                push(n, ng + max(ddx, ddy) + 0.414f * min(ddx, ddy))
+            }
+        }
+        if (!found) return 0
+        var nc = 0
+        var c = g
+        while (c >= 0 && nc < cells.size) { cells[nc++] = c; c = came[c] }
+        // cells vai do destino até a origem; corta caminho: do ponto atual, pula para a célula mais distante visível
+        val last = if (cellFree(tx, ty)) 1 else 0
+        val maxPts = out.size / 2
+        var n = 0
+        var curX = sx
+        var curY = sy
+        var i = nc - 1
+        while (i > 0 && n < maxPts - 1) {
+            var j = 0
+            while (j < i) {
+                val px = (cells[j] % GW) * NC + NC / 2f
+                val py = (cells[j] / GW) * NC + NC / 2f
+                if (lineClear(curX, curY, px, py)) break
+                j++
+            }
+            if (j >= i) j = i - 1
+            curX = (cells[j] % GW) * NC + NC / 2f
+            curY = (cells[j] / GW) * NC + NC / 2f
+            out[n * 2] = curX; out[n * 2 + 1] = curY; n++
+            i = j
+        }
+        if (last == 1 && n < maxPts) { out[n * 2] = tx; out[n * 2 + 1] = ty; n++ }
+        if (n == 0) { out[0] = gx * NC + NC / 2f; out[1] = gy * NC + NC / 2f; n = 1 } // já na célula do destino
+        return n
     }
 
     /** 0 = nenhuma, 2 = estrada da direita (em breve), 3 = trilha de terra do topo (em breve). A esquerda é um portal. */

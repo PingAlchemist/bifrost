@@ -32,6 +32,8 @@ class Mob(val d: MonsterDef, var x: Float, var y: Float) {
     var dead = false
     /** Animação de morte (achata, pisca, vira partículas) antes de sair da lista. */
     var dying = 0f
+    /** Herói não achou caminho até ele: o automático ignora por um tempo. */
+    var unreachT = 0f
     var burst = false
     var face = 1f
 }
@@ -372,14 +374,22 @@ class Game {
             // para o golpe de lado acertar o monstro de frente
             var side = if (px <= t.x) -1f else 1f
             val gap = t.d.size + 26f
-            if (t.x + side * gap < 40f || t.x + side * gap > map.w - 40f) side = -side
-            val sx = t.x + side * gap
-            val sy = t.y
+            if (t.x + side * gap < 40f || t.x + side * gap > map.w - 40f || !walkable(t.x + side * gap, t.y)) side = -side
+            var sx = t.x + side * gap
+            var sy = t.y
+            if (!walkable(sx, sy)) {
+                // os dois lados dentro de tronco/pedra/mata: chega pelo lado de onde vem
+                val dx = px - t.x
+                val dy = py - t.y
+                val dd = max(1f, sqrt(dx * dx + dy * dy))
+                sx = t.x + dx / dd * gap; sy = t.y + dy / dd * gap
+            }
             val dSlot = dist(px, py, sx, sy)
             if (dSlot > (if (hstate == HS_POS) 30f else 8f)) {
                 moveToward(sx, sy, dt, dSlot)
                 hstate = HS_WALK
                 posT = 0.12f
+                if (navFail) giveUp(t)
             } else {
                 glideStop(dt)
                 face = if (t.x >= px) 1f else -1f
@@ -394,6 +404,7 @@ class Game {
                 moveToward(t.x, t.y, dt, d - range)
                 hstate = HS_WALK
                 posT = 0.12f
+                if (navFail) giveUp(t)
             } else {
                 // chegou: desacelera, para e vira suavemente (~120ms) antes de atacar
                 glideStop(dt)
@@ -443,11 +454,22 @@ class Game {
         }
     }
 
+    /** Sem caminho até o alvo: larga e o automático ignora por 6s (evita o herói empurrando um tronco). */
+    private fun giveUp(t: Mob) {
+        t.unreachT = 6f
+        target = null
+        pendingSkill = -1
+        navTx = Float.NaN
+    }
+
     /** Velocidade de caminhada (mais baixa que antes, constante). */
     private fun walkSpeed() = p.speed * 0.72f
 
     /** Anda com aceleração (~150ms) e desacelera ao se aproximar do destino (remain = distância que falta). */
-    private fun moveToward(tx: Float, ty: Float, dt: Float, remain: Float) {
+    private fun moveToward(tx0: Float, ty0: Float, dt: Float, remain: Float) {
+        navigate(tx0, ty0, dt)
+        val tx = navX
+        val ty = navY
         val dx = tx - px
         val dy = ty - py
         val d = sqrt(dx * dx + dy * dy)
@@ -485,6 +507,39 @@ class Game {
             if (!ok) curSpeed *= 0.5f
         }
         if (abs(dx) > 2f) face = sign(dx)
+    }
+
+    // ---- navegação na floresta: com a linha reta bloqueada, segue um caminho (A*) contornando troncos e pedras ----
+    private val navPts = FloatArray(64)
+    private var navN = 0
+    private var navI = 0
+    private var navTx = Float.NaN
+    private var navTy = 0f
+    private var navT = 0f
+    private var navX = 0f
+    private var navY = 0f
+    /** Último cálculo não achou caminho até o destino. */
+    private var navFail = false
+
+    /** Põe em navX/navY o próximo ponto rumo a (tx,ty); refaz o caminho se o destino andar ou a cada 0,5s. */
+    private fun navigate(tx: Float, ty: Float, dt: Float) {
+        navX = tx; navY = ty
+        if (map.id != 1) { navFail = false; return }
+        navT -= dt
+        val moved = navTx.isNaN() || abs(tx - navTx) > 24f || abs(ty - navTy) > 24f
+        if (moved || navT <= 0f) {
+            navTx = tx; navTy = ty; navT = 0.5f
+            navFail = false
+            if (Forest.lineClear(px, py, tx, ty)) { navN = 0; return }
+            navN = Forest.path(px, py, tx, ty, navPts)
+            navI = 0
+            if (navN == 0) { navFail = true; return }
+        }
+        if (navN == 0) return
+        while (navI < navN - 1 && dist(px, py, navPts[navI * 2], navPts[navI * 2 + 1]) < 12f) navI++
+        // atalho: se já enxerga o ponto seguinte, vai direto nele
+        if (navI < navN - 1 && Forest.lineClear(px, py, navPts[navI * 2 + 2], navPts[navI * 2 + 3])) navI++
+        navX = navPts[navI * 2]; navY = navPts[navI * 2 + 1]
     }
 
     private val STEER = floatArrayOf(0.6f, 1.2f, 1.8f)
@@ -802,6 +857,7 @@ class Game {
                 }
                 if (m.dead) continue
             }
+            if (m.unreachT > 0f) m.unreachT -= dt
             if (m.frozen > 0f) {
                 m.frozen -= dt
                 continue
@@ -828,6 +884,10 @@ class Game {
                     m.wt = 2f + rnd.nextFloat() * 4f
                     m.wx = (m.x + rnd.nextInt(-200, 200)).coerceIn(320f, map.w - 320f)
                     m.wy = (m.y + rnd.nextInt(-200, 200)).coerceIn(150f, map.h - 80f)
+                    // floresta: só passeia até lugar aberto e com caminho reto (não fica colado em tronco)
+                    if (map.id == 1 && (!Forest.open(m.wx, m.wy, 40f) || !Forest.lineClear(m.x, m.y, m.wx, m.wy))) {
+                        m.wx = m.x; m.wy = m.y; m.wt = 0.5f
+                    }
                 }
                 if (dist(m.x, m.y, m.wx, m.wy) > 5f) mobMove(m, m.wx, m.wy, m.d.speed * 0.45f, dt)
             }
@@ -938,7 +998,8 @@ class Game {
             x = mx + rnd.nextFloat() * (map.w - 2 * mx)
             y = 160f + rnd.nextFloat() * (map.h - 240f)
             tries++
-        } while ((dist(x, y, px, py) < (if (map.id == 1) 380f else 520f) || !walkable(x, y)) && tries < 60)
+        } while ((dist(x, y, px, py) < (if (map.id == 1) 380f else 520f) || !walkable(x, y) ||
+                    (map.id == 1 && !Forest.open(x, y, 40f))) && tries < 80)
         val m = Mob(d, x, y)
         mobs.add(m)
         return m
@@ -962,6 +1023,7 @@ class Game {
             if (m.dead) continue
             // não puxa monstros passivos muito acima do nível (quem já está atacando é prioridade)
             if (!m.aggro && m.d.lv > p.lv + 6) continue
+            if (m.unreachT > 0f) continue
             var d = dist(px, py, m.x, m.y)
             if (m.aggro) d *= 0.4f
             if (d < bd) {
