@@ -242,6 +242,8 @@ class Game {
     // ----- seleção de personagem -----
     /** Tela de seleção ativa: o jogo fica parado e o Renderer desenha os slots. */
     var selecting = true
+    /** Tela inicial (logo) antes da seleção; só aparece ao abrir o app. */
+    var title = true
     /** Resumo de cada slot (null = vazio), lido dos saves. */
     val slots = arrayOfNulls<Player>(SLOTS)
     var selSlot = 0

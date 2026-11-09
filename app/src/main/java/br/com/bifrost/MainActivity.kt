@@ -208,7 +208,8 @@ class MainActivity : Activity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        if (game.selecting) @Suppress("DEPRECATION") super.onBackPressed()
+        if (game.selecting && !game.title) game.title = true // seleção -> tela inicial
+        else if (game.selecting) @Suppress("DEPRECATION") super.onBackPressed()
         else if (game.panel != Panel.NONE && game.panel != Panel.MORTE) game.panel = Panel.NONE
         else @Suppress("DEPRECATION") super.onBackPressed()
     }

@@ -143,7 +143,7 @@ class Renderer(private val g: Game, private val res: Resources) {
         nBtn = 0
         if (resetArm > 0f) resetArm -= dt
         if (g.selecting) {
-            drawSelect(c)
+            if (g.title) drawTitle(c) else drawSelect(c)
             return
         }
         drawWorld(c)
@@ -1700,6 +1700,71 @@ class Renderer(private val g: Game, private val res: Resources) {
     }
 
     // =====================================================================
+    // TELA INICIAL
+    // =====================================================================
+    private var titleT = 0f
+    private val actTitle: () -> Unit = { g.title = false }
+    /** Cores da ponte (de fora para dentro). */
+    private val BRIDGE = intArrayOf(
+        0xFFE57373.toInt(), 0xFFFFB74D.toInt(), 0xFFFFF176.toInt(), 0xFF81C784.toInt(),
+        0xFF64B5F6.toInt(), 0xFF9575CD.toInt()
+    )
+
+    /** Céu noturno, ponte arco-íris cintilando, logo, Aprendiz e Guerreiro no morro; toque em qualquer lugar entra. */
+    private fun drawTitle(c: Canvas) {
+        titleT += frameDt
+        val t = titleT
+        // céu em faixas
+        val sky = intArrayOf(0xFF0A0F1F.toInt(), 0xFF0F1830.toInt(), 0xFF152242.toInt(), 0xFF1C2D55.toInt(), 0xFF243866.toInt())
+        val bh = VH * 0.8f / sky.size
+        for (i in sky.indices) { fill.color = sky[i]; c.drawRect(0f, i * bh, vw, (i + 1) * bh + 1f, fill) }
+        // estrelas piscando (posições fixas)
+        for (i in 0 until 80) {
+            val sx = ((i * 7919) % 1000) / 1000f * vw
+            val sy = ((i * 104729 + 17) % 1000) / 1000f * VH * 0.62f
+            val a = 0.35f + 0.65f * abs(sin(t * (0.8f + (i % 5) * 0.3f) + i))
+            fill.color = art.alpha(Color.WHITE, (a * 210).toInt())
+            c.drawCircle(sx, sy, 1f + (i % 3) * 0.7f, fill)
+        }
+        val cx = vw / 2
+        val ground = VH * 0.80f
+        // ponte arco-íris: arcos concêntricos com um brilho que corre por ela
+        val rad = min(vw * 0.46f, VH * 0.62f)
+        val band = 9f
+        stroke.strokeWidth = band + 1f
+        for (k in BRIDGE.indices) {
+            val r = rad - k * band
+            val glow = 150 + (60 * (0.5f + 0.5f * sin(t * 2f - k * 0.6f))).toInt()
+            stroke.color = art.alpha(BRIDGE[k], glow)
+            rect.set(cx - r, ground - r, cx + r, ground + r)
+            c.drawArc(rect, 180f, 180f, false, stroke)
+        }
+        val sweep = 180f + ((t * 50f) % 220f) - 20f
+        stroke.strokeWidth = band * BRIDGE.size
+        stroke.color = art.alpha(Color.WHITE, 60)
+        val rm = rad - band * (BRIDGE.size - 1) / 2f
+        rect.set(cx - rm, ground - rm, cx + rm, ground + rm)
+        c.drawArc(rect, sweep, 14f, false, stroke)
+        // morros e chão
+        art.oval(c, -vw * 0.2f, ground - 60f, vw * 0.55f, ground + 120f, col(0xFF1E3B2A))
+        art.oval(c, vw * 0.45f, ground - 46f, vw * 1.2f, ground + 120f, col(0xFF1E3B2A))
+        fill.color = col(0xFF173022); c.drawRect(0f, ground, vw, VH, fill)
+        art.oval(c, cx - 200f, ground - 34f, cx + 200f, ground + 30f, col(0xFF25492F))
+        // heróis
+        val hh = VH * 0.24f
+        frontHero(c, Job.APRENDIZ, cx - 70f, ground + 4f + sin(t * 2.2f) * 1.2f, hh)
+        frontHero(c, Job.GUERREIRO, cx + 70f, ground + 4f + sin(t * 2.2f + 1.3f) * 1.2f, hh)
+        // logo
+        val ly = safeT + VH * 0.2f
+        outlined(c, "BIFROST", cx, ly, 78f, col(0xFFFFF59D))
+        label(c, "A ponte entre os mundos", cx, ly + 40f, 19f, col(0xFFB0BEC5), Paint.Align.CENTER)
+        // toque para começar
+        val a = 0.45f + 0.55f * (0.5f + 0.5f * sin(t * 3.2f))
+        outlined(c, "Toque para começar", cx, VH - safeB - 34f, 24f, art.alpha(Color.WHITE, (a * 255).toInt()))
+        addBtn(0f, 0f, vw, VH, actTitle)
+    }
+
+    // =====================================================================
     // SELEÇÃO DE PERSONAGEM
     // =====================================================================
     /** Sprite de frente nos slots: 0 = Aprendiz, 1 = Guerreiro. */
@@ -1734,6 +1799,7 @@ class Renderer(private val g: Game, private val res: Resources) {
         val cx = (L + R) / 2
         outlined(c, "Bifrost", cx, T + 46f, 40f, col(0xFFFFF59D))
         label(c, "Selecione seu personagem", cx, T + 76f, 17f, col(0xFFCFD8DC), Paint.Align.CENTER)
+        button(c, L, T + 8f, 110f, 42f, "‹ Início", true, Style.HUD_BTN, 17f) { g.title = true }
 
         val gap = 24f
         val cw = min(320f, (R - L - 2 * gap) / SLOTS)
@@ -1777,10 +1843,12 @@ class Renderer(private val g: Game, private val res: Resources) {
     }
 
     /** Boneco parado de frente no slot: sprite (Aprendiz/Guerreiro) ou boneco desenhado. */
-    private fun slotHero(c: Canvas, sp: Player, x: Float, feet: Float, h: Float) {
-        if (sp.job == Job.APRENDIZ || sp.job == Job.GUERREIRO) {
-            val i = if (sp.job == Job.APRENDIZ) 0 else 1
-            val b = slotBmp[i] ?: BitmapFactory.decodeResource(res, skinOf(sp.job).ids[SpriteHero.S],
+    private fun slotHero(c: Canvas, sp: Player, x: Float, feet: Float, h: Float) = frontHero(c, sp.job, x, feet, h)
+
+    private fun frontHero(c: Canvas, job: Job, x: Float, feet: Float, h: Float) {
+        if (job == Job.APRENDIZ || job == Job.GUERREIRO) {
+            val i = if (job == Job.APRENDIZ) 0 else 1
+            val b = slotBmp[i] ?: BitmapFactory.decodeResource(res, skinOf(job).ids[SpriteHero.S],
                 BitmapFactory.Options().apply { inScaled = false })?.also { slotBmp[i] = it }
             if (b != null) {
                 art.oval(c, x - h * 0.22f, feet - h * 0.05f, x + h * 0.22f, feet + h * 0.05f, col(0x44000000))
@@ -1790,7 +1858,7 @@ class Renderer(private val g: Game, private val res: Resources) {
                 return
             }
         }
-        art.hero(c, x, feet, 1f, sp.job.cor, sp.job.cabelo, sp.job.hat, weaponFor(sp.job), 0f, false, 0f, h / 66f, 0f)
+        art.hero(c, x, feet, 1f, job.cor, job.cabelo, job.hat, weaponFor(job), 0f, false, 0f, h / 66f, 0f)
     }
 
     // =====================================================================
