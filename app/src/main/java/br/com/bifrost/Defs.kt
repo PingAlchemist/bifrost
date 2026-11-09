@@ -6,6 +6,9 @@ import kotlin.math.sqrt
 
 fun col(v: Long): Int = v.toInt()
 
+/** Versão mostrada na tela inicial e na seleção (conferir no celular qual APK está instalado). */
+const val VERSAO = "1.1.0"
+
 /** TESTE: multiplicador de EXP (base e classe), online e offline. Volte para 1f quando terminar os testes. */
 const val EXP_RATE = 15f
 

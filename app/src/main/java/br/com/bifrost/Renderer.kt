@@ -1611,6 +1611,7 @@ class Renderer(private val g: Game, private val res: Resources) {
         // toque para começar
         val a = 0.45f + 0.55f * (0.5f + 0.5f * sin(t * 3.2f))
         outlined(c, "Toque para começar", cx, VH - safeB - 34f, 24f, art.alpha(Color.WHITE, (a * 255).toInt()))
+        label(c, "v$VERSAO", vw - safeR - 16f, VH - safeB - 14f, 15f, col(0xFF90A4AE), Paint.Align.RIGHT)
         addBtn(0f, 0f, vw, VH, actTitle)
     }
 
@@ -1648,6 +1649,7 @@ class Renderer(private val g: Game, private val res: Resources) {
         val B = VH - safeB - 12f
         val cx = (L + R) / 2
         outlined(c, "Bifrost", cx, T + 46f, 40f, col(0xFFFFF59D))
+        label(c, "v$VERSAO", R, T + 24f, 15f, col(0xFF90A4AE), Paint.Align.RIGHT)
         label(c, "Selecione seu personagem", cx, T + 76f, 17f, col(0xFFCFD8DC), Paint.Align.CENTER)
         button(c, L, T + 8f, 110f, 42f, "‹ Início", true, Style.HUD_BTN, 17f) { g.title = true }
 
