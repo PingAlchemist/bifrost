@@ -139,6 +139,7 @@ class MainActivity : Activity() {
         slot = -1
         game.panel = Panel.NONE
         game.selecting = true
+        audio.stopMusic()
         refreshSlots()
     }
 

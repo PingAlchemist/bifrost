@@ -1702,7 +1702,8 @@ class Renderer(private val g: Game, private val res: Resources) {
     // =====================================================================
     // SELEÇÃO DE PERSONAGEM
     // =====================================================================
-    private var slotBmp: Bitmap? = null
+    /** Sprite de frente nos slots: 0 = Aprendiz, 1 = Guerreiro. */
+    private val slotBmp = arrayOfNulls<Bitmap>(2)
     private val actSlot: Array<() -> Unit> = Array(SLOTS) { i ->
         {
             // tocar de novo no slot já escolhido: joga (ou cria, se vazio)
@@ -1778,8 +1779,9 @@ class Renderer(private val g: Game, private val res: Resources) {
     /** Boneco parado de frente no slot: sprite (Aprendiz/Guerreiro) ou boneco desenhado. */
     private fun slotHero(c: Canvas, sp: Player, x: Float, feet: Float, h: Float) {
         if (sp.job == Job.APRENDIZ || sp.job == Job.GUERREIRO) {
-            val b = slotBmp ?: BitmapFactory.decodeResource(res, R.drawable.guerreiro_s,
-                BitmapFactory.Options().apply { inScaled = false })?.also { slotBmp = it }
+            val i = if (sp.job == Job.APRENDIZ) 0 else 1
+            val b = slotBmp[i] ?: BitmapFactory.decodeResource(res, skinOf(sp.job).ids[SpriteHero.S],
+                BitmapFactory.Options().apply { inScaled = false })?.also { slotBmp[i] = it }
             if (b != null) {
                 art.oval(c, x - h * 0.22f, feet - h * 0.05f, x + h * 0.22f, feet + h * 0.05f, col(0x44000000))
                 val k = h / b.height

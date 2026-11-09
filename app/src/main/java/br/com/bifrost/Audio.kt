@@ -136,6 +136,13 @@ class Audio(ctx: Context) {
         startTrack(track)
     }
 
+    /** Silencia a música até o próximo music() (tela de seleção). */
+    fun stopMusic() {
+        wantTrack = -1
+        curTrack = -1
+        stopPlayer()
+    }
+
     fun setMusic(on: Boolean) {
         musicOn = on
         if (!on) {
