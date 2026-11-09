@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
@@ -11,8 +11,8 @@ android {
         applicationId = "br.com.bifrost"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.3.1" // igual a VERSAO em Defs.kt
+        versionCode = 6
+        versionName = "1.4.0" // igual a VERSAO em Defs.kt
     }
 
     buildTypes {

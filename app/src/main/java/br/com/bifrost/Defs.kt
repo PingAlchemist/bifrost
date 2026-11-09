@@ -1,4 +1,4 @@
-﻿package br.com.bifrost
+package br.com.bifrost
 
 import kotlin.math.max
 import kotlin.math.pow
@@ -7,13 +7,16 @@ import kotlin.math.sqrt
 fun col(v: Long): Int = v.toInt()
 
 /** VersÃ£o mostrada na tela inicial e na seleÃ§Ã£o (conferir no celular qual APK estÃ¡ instalado). */
-const val VERSAO = "1.3.1"
+const val VERSAO = "1.4.0"
 
 /** TESTE: multiplicador de EXP (base e classe), online e offline. Volte para 1f quando terminar os testes. */
 const val EXP_RATE = 60f
 
 /** TESTE: multiplicador de drop (itens, poÃ§Ãµes e cartas; chance acima de 100% vira quantidade). Volte para 1f depois. */
 const val DROP_RATE = 60f
+
+/** Multiplicador do drop de EQUIPAMENTOS com tier (separado do DROP_RATE; taxas em assets/equipamentos.json). */
+const val GEAR_DROP_RATE = 1f
 
 /** TESTE: multiplicador de zeny dos monstros (online e offline). Volte para 1f depois. */
 const val ZENY_RATE = 60f

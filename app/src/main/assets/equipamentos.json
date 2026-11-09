@@ -52,6 +52,17 @@
     "monstrosMagicos": [11, 14, 15, 17, 19]
   },
 
+  "_drop": "Drop de equipamento dos monstros comuns (não usa o DROP_RATE; multiplica pelo GEAR_DROP_RATE de Defs.kt). chancePorTier = chance por abate de cair um item de cada tier (1 a 5), sorteio único do maior para o menor. escalaPorMapa (mapas 1 a 7) multiplica os valores dos encantamentos. valorVenda = zeny por nível do item, por tier. chancePorTierChefe vazio = chefes não dropam equipamento.",
+  "drop": {
+    "chancePorTier": [0.015, 0.003, 0.0005, 0.00005, 0],
+    "chancePorTierChefe": [],
+    "chanceTipoDaClasse": 0.7,
+    "escalaPorMapa": [0.3, 0.4, 0.5, 0.65, 0.8, 0.9, 1.0],
+    "limiteBolsa": 100,
+    "vendaAutomatica": [false, false, false, false],
+    "valorVenda": [15, 40, 120, 400, 0]
+  },
+
   "_itens": "Itens base. nivel = nível requerido; mapa = mapa onde dropa (1 a 7). base = atributos fixos (ATK e MATK da arma e DEF da armadura substituem os da loja quando equipados).",
   "itens": [
     {"id": 1,  "nome": "Lâmina de Bronze",     "tipo": "ARMA_FIS",  "nivel": 1,  "mapa": 1, "base": {"ATK": 12}},

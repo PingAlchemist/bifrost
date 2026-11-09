@@ -40,6 +40,9 @@ object Offline {
         var potsGanhas = 0
         var weak = 0
         val cards = ArrayList<String>()
+        val gear = IntArray(TIER_MAX)
+        val raros = ArrayList<String>()
+        var venda = 0L
         val mul = (1f + p.expPct / 100f) * EXP_RATE
 
         for (id in map.mobs) {
@@ -80,6 +83,17 @@ object Offline {
                 p.cards[id] += c
                 cards.add("${d.cardNome} x$c")
             }
+            // equipamentos: mesmas regras do jogo (1 sorteio por abate, só monstros comuns, bolsa e venda automática)
+            if (!d.boss) for (q in 0 until n) {
+                val t = Equip.rollTier(rnd, false)
+                if (t == 0) continue
+                val it = Equip.rollDrop(map.id, t, p.job, p.nextUid, rnd) ?: continue
+                p.nextUid++
+                gear[t - 1]++
+                val r = p.receive(it)
+                if (r == GEAR_AUTO_SOLD || r == GEAR_FULL_SOLD) venda += p.lastSale
+                if (t >= 3) raros.add(it.nome)
+            }
             val pd = sample(n * 0.03f * DROP_RATE, rnd)
             if (pd > 0) {
                 p.potions[potionTierFor(d.lv)] += pd
@@ -110,7 +124,7 @@ object Offline {
             used > 0 && potHp <= 1f -> "As poções acabaram; o bot descansou entre as lutas (rendeu menos)."
             else -> ""
         }
-        return OfflineReport(secs, map.nome, kills, exp, jexp, zeny, lootTotal, used, potsGanhas, cards, got[0], got[1], nota)
+        return OfflineReport(secs, map.nome, kills, exp, jexp, zeny, lootTotal, used, potsGanhas, cards, got[0], got[1], nota, gear, raros, venda)
     }
 
     private fun sample(e: Float, rnd: Random): Int {

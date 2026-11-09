@@ -95,7 +95,7 @@ class Drop {
     var vy = 0f
     var vz = 0f
     var t = 0f
-    var kind = 0 // 0 zeny, 1 item, 2 carta
+    var kind = 0 // 0 zeny, 1 item, 2 carta, 3 equipamento (amount = tier)
     var amount = 0L
     var label = ""
     var cor = 0
@@ -137,7 +137,9 @@ class Particles(val cap: Int) {
 class OfflineReport(
     val secs: Long, val mapa: String, val kills: Long, val exp: Long, val jexp: Long, val zeny: Long,
     val loot: Int, val potsUsadas: Int, val potsGanhas: Int, val cards: List<String>,
-    val lvBase: Int, val lvJob: Int, val nota: String
+    val lvBase: Int, val lvJob: Int, val nota: String,
+    /** Equipamentos por tier (índice 0 = tier 1), nomes dos tiers 3 e 4 e zeny das vendas automáticas. */
+    val gear: IntArray = IntArray(TIER_MAX), val gearRaros: List<String> = emptyList(), val gearVenda: Long = 0L
 )
 
 fun dist(x1: Float, y1: Float, x2: Float, y2: Float): Float {
@@ -298,8 +300,18 @@ class Game {
     }
 
     // ================= LOOP =================
+    /** Abates e segundos jogados desde que entrou com o personagem (painel de teste: abates/hora). */
+    var sessKills = 0L
+        private set
+    var sessT = 0f
+        private set
+    /** Resultado da última simulação de drop de equipamento (por tier, índice 0 = tier 1). */
+    var simGear: LongArray? = null
+        private set
+
     fun update(dt: Float) {
         time += dt
+        sessT += dt
         for (i in p.buff.indices) if (p.buff[i] > 0f) p.buff[i] -= dt
         p.recalc()
         atkT -= dt; castLock -= dt; potT -= dt; manualT -= dt
@@ -750,7 +762,8 @@ class Game {
         for (d in drops) {
             if (!d.on) continue
             d.t += dt
-            if (d.t < 1.0f) {
+            val ground = if (d.kind == 3 && d.amount >= 3) 2.2f else 1.0f
+            if (d.t < ground) {
                 d.x += d.vx * dt; d.y += d.vy * dt
                 d.vz -= 900f * dt; d.z += d.vz * dt
                 if (d.z < 0f) {
@@ -759,16 +772,18 @@ class Game {
             } else {
                 val ty = py - 18f
                 val dd = dist(d.x, d.y, px, ty)
-                val sp = 450f + (d.t - 1.0f) * 1000f
+                val sp = 450f + (d.t - ground) * 1000f
                 if (dd < sp * dt + 12f) {
                     d.on = false
-                    snd(when (d.kind) { 0 -> Audio.S_COIN; 1 -> Audio.S_POP; else -> Audio.S_CARD }, if (d.kind == 1) 1.5f else 1f)
+                    snd(when (d.kind) { 0 -> Audio.S_COIN; 1, 3 -> Audio.S_POP; else -> Audio.S_CARD }, if (d.kind == 1 || d.kind == 3) 1.5f else 1f)
                     val txt = when (d.kind) {
                         0 -> "+${d.amount} Zeny"
                         1 -> if (d.amount > 1) "+${d.amount} ${d.label}" else "+${d.label}"
+                        3 -> d.label
                         else -> "★ ${d.label}"
                     }
-                    heroText(txt, if (d.kind == 0) C_GOLD else d.cor, d.kind == 2)
+                    // equipamento: só tier 3 e 4 ganham texto sobre o herói
+                    if (d.kind != 3 || d.amount >= 3) heroText(txt, if (d.kind == 0) C_GOLD else d.cor, d.kind == 2 || (d.kind == 3 && d.amount >= 4))
                     // brilho ao coletar
                     if (p.fx) for (k in 0 until 8) parts.spawn(px + rnd.nextInt(-6, 6), py - 22f, rnd.nextInt(-70, 70).toFloat(), rnd.nextInt(-110, -20).toFloat(), 0.4f, 2.2f, 120f, if (k % 2 == 0) C_GOLD else C_WHITE)
                 } else {
@@ -792,6 +807,7 @@ class Game {
         m.dead = true
         m.dying = DEATH_TIME
         p.kills++
+        sessKills++
         if (target === m) target = null
         // pausa após o abate: moedas caem e o herói fica em idle antes do próximo alvo
         postKillT = POST_KILL
@@ -828,12 +844,44 @@ class Game {
             if (!p.fx) snd(Audio.S_CARD)
             if (p.fx) spawnDrop(m.x, m.y, 2, 1, d.cardNome, C_GOLD)
         }
+        gearDrop(m)
         if (d.boss) {
             bossT[map.id] = 480f
             addLog("${d.nome} foi derrotado!", C_GOLD)
         }
         gainExp(e, j)
     }
+
+    /** Equipamento com tier: no máximo 1 por abate, itens do mapa atual (chefes usam a tabela deles, hoje vazia). */
+    private fun gearDrop(m: Mob) {
+        if (map.id == 0) return
+        val tier = Equip.rollTier(rnd, m.d.boss)
+        if (tier == 0) return
+        val it = Equip.rollDrop(map.id, tier, p.job, p.nextUid, rnd) ?: return
+        p.nextUid++
+        val cor = Equip.tierCor(tier)
+        when (p.receive(it)) {
+            GEAR_AUTO_SOLD -> addLog("Vendido: ${it.nome} (+${p.lastSale} z)", cor)
+            GEAR_FULL_SOLD -> addLog("Bolsa cheia! Vendido: ${it.nome} (+${p.lastSale} z)", cor)
+            GEAR_OVER -> addLog("Bolsa cheia (${p.bag.size}/${Equip.limiteBolsa}), mas guardou: ${it.nome}", cor)
+            else -> addLog("Obteve ${it.nome} [${Equip.tierNome(tier)}]", cor)
+        }
+        if (tier >= 3) {
+            snd(if (tier >= 4) Audio.S_LEVELUP else Audio.S_JOBUP, if (tier >= 4) 1.15f else 1.3f)
+            if (tier >= 4) { vibrate(120); shakeT = 0.2f }
+        }
+        spawnDrop(m.x, m.y, 3, tier.toLong(), it.nome, cor)
+    }
+
+    /** Teste: 10.000 abates no mapa atual (só sorteia o tier, nada vai para a bolsa). */
+    fun simulateGear(n: Int = 10000) {
+        val r = LongArray(TIER_MAX)
+        repeat(n) { val t = Equip.rollTier(rnd, false); if (t > 0) r[t - 1]++ }
+        simGear = r
+    }
+
+    /** Abates por hora na sessão atual. */
+    fun killsPerHour(): Long = if (sessT < 30f) 0L else (sessKills * 3600f / sessT).toLong()
 
     /** Quantos caem: chance × DROP_RATE; a parte inteira sempre cai e a fração é sorteada. */
     private fun dropCount(chance: Float): Int {
@@ -1245,7 +1293,16 @@ class Game {
                     -(120f + rnd.nextFloat() * 140f), 0.6f + rnd.nextFloat() * 0.4f, 2f + rnd.nextFloat() * 2f, -60f,
                     if (k % 3 == 0) C_YELLOW else col(0xFFFF7043))
             }
-            9, 12 -> {
+            9 -> after(hit) {
+                // Olho de Águia: foco dourado em volta do herói e brilhos subindo
+                p.buff[id] = s.dur
+                fx.add(Fx(FX_RING, px, py - 25f, 0f, 0f, 55f, s.cor, 0.6f))
+                fx.add(Fx(FX_AURA, px, py, 0f, 0f, 30f, s.cor, 0.8f))
+                for (k in 0 until 10) parts.spawn(px + rnd.nextInt(-18, 18), py - rnd.nextInt(20, 60), rnd.nextInt(-20, 20).toFloat(),
+                    -(60f + rnd.nextFloat() * 80f), 0.5f + rnd.nextFloat() * 0.3f, 1.8f + rnd.nextFloat() * 1.5f, -40f,
+                    if (k % 2 == 0) C_WHITE else s.cor)
+            }
+            12 -> {
                 p.buff[id] = s.dur
                 fx.add(Fx(FX_RING, px, py - 25f, 0f, 0f, 55f, s.cor, 0.6f))
             }
@@ -1297,13 +1354,30 @@ class Game {
                 }
             }
             7 -> t?.let {
-                fx.add(Fx(FX_SHOT, px, py - 30f, it.x, it.y - it.d.size, 0f, s.cor, 0.14f))
-                fx.add(Fx(FX_SHOT, px, py - 22f, it.x, it.y - it.d.size + 8f, 0f, s.cor, 0.2f))
-                repeat(2) { _ -> dmgMob(it, reduce(p.atk * (0.9f + 0.15f * l) * vari(), it.d.def, false), false, C_GREEN) }
+                // Disparo Duplo: uma flecha em cada soltura da animação (mesmo dano de antes, dividido nos dois tiros)
+                for (shot in 0..1) after(if (shot == 0) hit else SpriteClips.DUPLO_HIT2) {
+                    if (it.dead) return@after
+                    fx.add(Fx(FX_SHOT, px + face * 16f, py - 34f + shot * 6f, it.x, it.y - it.d.size, 0f, s.cor, 0.12f))
+                    after(0.1f) {
+                        if (it.dead) return@after
+                        fx.add(Fx(FX_FLASH, it.x, it.y - it.d.size, 0f, 0f, it.d.size + 16f, col(0xFFDCEDC8), 0.2f))
+                        dmgMob(it, reduce(p.atk * (0.9f + 0.15f * l) * vari(), it.d.def, false), false, C_GREEN)
+                    }
+                }
             }
             8 -> t?.let {
-                fx.add(Fx(FX_RAIN, it.x, it.y, 0f, 0f, s.radius, s.cor, 0.5f))
-                areaDmg(it.x, it.y, s.radius, 0.8f + 0.2f * l, false)
+                // Chuva de Flechas: flecha para o céu na soltura; a chuva cai na área do alvo e acerta logo depois
+                val cx = it.x
+                val cy = it.y
+                after(hit) {
+                    fx.add(Fx(FX_SHOT, px + face * 12f, py - 44f, px + face * 60f, py - 260f, 0f, s.cor, 0.2f))
+                    fx.add(Fx(FX_RING, cx, cy, 0f, 0f, s.radius, col(0x668BC34A), 0.6f))
+                }
+                after(hit + 0.15f) { fx.add(Fx(FX_RAIN, cx, cy, 0f, 0f, s.radius, s.cor, 0.5f)) }
+                after(hit + 0.35f) {
+                    burst(cx, cy, 10, col(0xFF8D6E63), 160f, 400f)
+                    areaDmg(cx, cy, s.radius, 0.8f + 0.2f * l, false)
+                }
             }
             10 -> t?.let {
                 fx.add(Fx(FX_SLASH, it.x, it.y - it.d.size, 0f, 0f, it.d.size + 14f, s.cor, 0.25f))
@@ -1442,6 +1516,11 @@ class Game {
         if (p.equip(it)) addLog("Equipou ${it.nome}.", Equip.tierCor(it.tier))
     }
 
+    fun sellItem(it: GearItem) {
+        val v = p.sellFromBag(it)
+        if (v > 0) { addLog("Vendido: ${it.nome} (+$v z)", Equip.tierCor(it.tier)); snd(Audio.S_COIN) }
+    }
+
     /** Teste: cria um item do tier pedido (só até o tier ativo), da faixa de nível do personagem. */
     fun debugItem(tier: Int) {
         if (tier < 1 || tier > Equip.tierAtivo) return
@@ -1487,6 +1566,7 @@ class Game {
     fun loadChar(o: JSONObject) {
         p.fromJson(Player().toJson())
         p.fromJson(o)
+        sessKills = 0L; sessT = 0f; simGear = null
         cd.fill(0f)
         bossT.fill(150f)
         dead = false

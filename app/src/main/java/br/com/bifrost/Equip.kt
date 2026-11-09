@@ -36,6 +36,12 @@ const val N_SLOTS = 6
 val SLOT_NOMES = arrayOf("Arma", "Elmo", "Armadura", "Escudo", "Botas", "Acessório")
 const val TIER_MAX = 5
 
+// resultado de Player.receive
+const val GEAR_KEPT = 0
+const val GEAR_AUTO_SOLD = 1
+const val GEAR_FULL_SOLD = 2
+const val GEAR_OVER = 3
+
 class ItemBase(val id: Int, val nome: String, val tipo: EqType, val nivel: Int, val mapa: Int, val base: IntArray)
 
 /** Item dropado: item base + tier (1..5) + encantamentos sorteados + id único. */
@@ -86,6 +92,15 @@ object Equip {
     var penMax = 60
     var mdefK = 120f
     var magicos = IntArray(0)
+    // ----- drop (seção "drop" do JSON) -----
+    var chance = floatArrayOf(0.015f, 0.003f, 0.0005f, 0.00005f, 0f)
+    /** Tabela dos chefes: vazia = chefe não dropa equipamento (preparado para o futuro). */
+    var chanceChefe = FloatArray(0)
+    var chanceTipoClasse = 0.7f
+    var escalaMapa = floatArrayOf(0.3f, 0.4f, 0.5f, 0.65f, 0.8f, 0.9f, 1f)
+    var limiteBolsa = 100
+    var vendaPadrao = BooleanArray(4)
+    var valorVenda = intArrayOf(15, 40, 120, 400, 0)
     val itens = ArrayList<ItemBase>()
     private val byId = HashMap<Int, ItemBase>()
 
@@ -117,6 +132,15 @@ object Equip {
             mdefK = c.optDouble("mdefConstante", 120.0).toFloat()
             c.optJSONArray("monstrosMagicos")?.let { a -> magicos = IntArray(a.length()) { a.optInt(it) } }
         }
+        o.optJSONObject("drop")?.let { d ->
+            d.optJSONArray("chancePorTier")?.let { a -> chance = FloatArray(TIER_MAX) { a.optDouble(it, 0.0).toFloat() } }
+            d.optJSONArray("chancePorTierChefe")?.let { a -> chanceChefe = FloatArray(a.length()) { a.optDouble(it, 0.0).toFloat() } }
+            chanceTipoClasse = d.optDouble("chanceTipoDaClasse", 0.7).toFloat()
+            d.optJSONArray("escalaPorMapa")?.let { a -> escalaMapa = FloatArray(a.length()) { a.optDouble(it, 1.0).toFloat() } }
+            limiteBolsa = d.optInt("limiteBolsa", 100)
+            d.optJSONArray("vendaAutomatica")?.let { a -> vendaPadrao = BooleanArray(4) { a.optBoolean(it, false) } }
+            d.optJSONArray("valorVenda")?.let { a -> valorVenda = IntArray(TIER_MAX) { a.optInt(it, 0) } }
+        }
         itens.clear(); byId.clear()
         o.optJSONArray("itens")?.let { a ->
             for (i in 0 until a.length()) {
@@ -147,4 +171,30 @@ object Equip {
     }
 
     fun isMagicMob(id: Int) = magicos.contains(id)
+
+    /** Um sorteio por abate, do maior tier para o menor; 0 = nada. Só até o tier ativo (o 5 nunca cai). */
+    fun rollTier(rnd: Random, boss: Boolean): Int {
+        val tab = if (boss) chanceChefe else chance
+        val r = rnd.nextDouble()
+        var acc = 0.0
+        for (t in minOf(tierAtivo, tab.size) downTo 1) {
+            acc += tab[t - 1] * GEAR_DROP_RATE
+            if (r < acc) return t
+        }
+        return 0
+    }
+
+    /** Item do mapa (campo "mapa"), com chance de ser de um tipo que a classe usa; encantamentos na escala do mapa. */
+    fun rollDrop(mapId: Int, tier: Int, job: Job, uid: Long, rnd: Random): GearItem? {
+        val doMapa = itens.filter { it.mapa == mapId }
+        if (doMapa.isEmpty()) return null
+        val daClasse = doMapa.filter { it.tipo.serve(job) }
+        val pool = if (daClasse.isNotEmpty() && rnd.nextFloat() < chanceTipoClasse) daClasse else doMapa
+        val it = roll(pool[rnd.nextInt(pool.size)], tier, uid, rnd)
+        val esc = escalaMapa.getOrElse(mapId - 1) { 1f }
+        for (k in it.vals.indices) it.vals[k] = maxOf(1, Math.round(it.vals[k] * esc))
+        return it
+    }
+
+    fun sellValue(it: GearItem) = valorVenda.getOrElse(it.tier - 1) { 0 }.toLong() * maxOf(1, it.base.nivel)
 }

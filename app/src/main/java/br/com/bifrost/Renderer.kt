@@ -835,6 +835,28 @@ class Renderer(private val g: Game, private val res: Resources) {
                     art.circle(c, d.x, y, 5f, d.cor)
                     art.line(c, d.x - 3f, y - 5f, d.x + 3f, y - 5f, 2f, col(0xFF6D4C41))
                 }
+                3 -> {
+                    val tier = d.amount.toInt()
+                    if (tier >= 3) {
+                        // feixe de luz: mais alto e mais forte no tier 4
+                        val pulse = sin(g.time * 6f) * 0.5f + 0.5f
+                        val hgt = if (tier >= 4) 150f else 95f
+                        val wd = if (tier >= 4) 9f else 6f
+                        for (k in 0..2) {
+                            val ww = wd * (1.6f - k * 0.5f)
+                            fill.color = art.alpha(d.cor, ((if (tier >= 4) 60 else 40) + k * 30 + pulse * 30).toInt())
+                            rect.set(d.x - ww, y - hgt, d.x + ww, y + 2f)
+                            c.drawRoundRect(rect, ww, ww, fill)
+                        }
+                    }
+                    fill.color = art.alpha(d.cor, 90)
+                    c.drawCircle(d.x, y, 9f + (if (tier >= 3) 3f else 0f), fill)
+                    art.rr(c, d.x - 5.5f, y - 5.5f, d.x + 5.5f, y + 5.5f, 1.5f, col(0xFF1C232C))
+                    stroke.strokeWidth = 1.6f; stroke.color = d.cor
+                    rect.set(d.x - 5.5f, y - 5.5f, d.x + 5.5f, y + 5.5f); c.drawRoundRect(rect, 1.5f, 1.5f, stroke)
+                    c.drawLine(d.x - 2.5f, y + 2.5f, d.x + 2.5f, y - 2.5f, stroke)
+                    if (d.t < 1.2f) outlined(c, d.label, d.x, y - 14f, ws(11f), d.cor)
+                }
                 else -> {
                     art.rr(c, d.x - 5f, y - 7f, d.x + 5f, y + 7f, 1.5f, col(0xFFFFF8E1))
                     stroke.strokeWidth = 1.5f; stroke.color = col(0xFFB8860B)
@@ -1294,7 +1316,7 @@ class Renderer(private val g: Game, private val res: Resources) {
         val pw = min(availW, 920f)
         val ph = when (g.panel) {
             Panel.MORTE -> 260f
-            Panel.OFFLINE -> 520f
+            Panel.OFFLINE -> min(620f, VH - safeT - safeB - 40f)
             else -> min(620f, VH - safeT - safeB - 40f)
         }
         val pl = safeL + (vw - safeL - safeR - pw) / 2
@@ -1466,21 +1488,34 @@ class Renderer(private val g: Game, private val res: Resources) {
             label(c, fit(nome, 190f, 15f), sx + 52f, y + 38f, 15f, if (it != null) Equip.tierCor(it.tier) else col(0xFF8A96A6))
             if (it != null) addBtn(sx, y, sx + 250f, y + 48f) { selItem = it }
         }
-        // ----- teste: gerar item de qualquer tier -----
+        // ----- teste: gerar item de qualquer tier, simular drops, abates/hora -----
         val dy = top + N_SLOTS * 54f + 12f
         label(c, "Teste: gerar item", sx, dy + 4f, 13f, INK2)
         for (t in 1..4) button(c, sx + (t - 1) * 63f, dy + 12f, 58f, 34f, "T$t", true, tierBtn(t), 15f) { g.debugItem(t) }
+        button(c, sx, dy + 54f, 250f, 34f, "Simular 10.000 abates", g.map.id != 0, Style.HUD_BTN, 15f) { g.simulateGear() }
+        g.simGear?.let { r ->
+            label(c, "T1 ${r[0]} · T2 ${r[1]} · T3 ${r[2]} · T4 ${r[3]}", sx, dy + 108f, 14f, INK)
+        }
+        label(c, "Abates/hora (sessão): ${fmt(g.killsPerHour())}", sx, dy + 130f, 13f, INK2)
 
         // ----- bolsa -----
         val gx = pl + 286f
         val cell = 56f
         val gap = 6f
         val cols = 5
-        val rows = max(1, ((h - 70f) / (cell + gap)).toInt())
+        val rows = max(1, ((h - 120f) / (cell + gap)).toInt())
         val per = cols * rows
         val pages = max(1, (p.bag.size + per - 1) / per)
         bagPage = bagPage.coerceIn(0, pages - 1)
-        label(c, "Bolsa: ${p.bag.size} itens", gx, top + 2f, 14f, INK2)
+        label(c, "Bolsa: ${p.bag.size}/${Equip.limiteBolsa}", gx, top + 2f, 14f, if (p.bag.size >= Equip.limiteBolsa) col(0xFFC62828) else INK2)
+        // venda automática por tier (liga/desliga)
+        val vy = top + 10f + rows * (cell + gap) + 2f
+        label(c, "Venda auto:", gx, vy + 22f, 13f, INK2)
+        for (t in 1..4) {
+            val on = p.autoSell[t - 1]
+            button(c, gx + 82f + (t - 1) * 56f, vy, 50f, 32f, "T$t", true, if (on) tierBtn(t) else col(0xFFB0B8C2), 14f) { p.autoSell[t - 1] = !p.autoSell[t - 1] }
+            if (on) label(c, "✓", gx + 82f + (t - 1) * 56f + 44f, vy + 10f, 11f, Color.WHITE, Paint.Align.RIGHT)
+        }
         for (k in 0 until per) {
             val i = bagPage * per + k
             val x = gx + (k % cols) * (cell + gap)
@@ -1550,13 +1585,16 @@ class Renderer(private val g: Game, private val res: Resources) {
                 val d = a[k] - b[k]
                 if (d == 0) continue
                 any = true
-                if (y < bottom - 64f) { label(c, St.entries[k].texto(d), x, y, 14f, if (d > 0) C_UP else C_DOWN); y += 18f }
+                if (y < bottom - 112f) { label(c, St.entries[k].texto(d), x, y, 14f, if (d > 0) C_UP else C_DOWN); y += 18f }
             }
             if (!any) label(c, "Igual ao atual", x, y, 14f, col(0xFFCFD8DC))
         } else if (equipped) label(c, "Equipado", x, y, 14f, C_UP)
         val by = bottom - 54f
         if (equipped) button(c, x, by, w, 42f, "Desequipar", true, Style.HUD_BTN, 17f) { p.unequip(it.tipo.slot) }
-        else button(c, x, by, w, 42f, "Equipar", okLv && okJob, BTN_GOLD, 17f) { g.equipItem(it) }
+        else {
+            button(c, x, by, w, 42f, "Equipar", okLv && okJob, BTN_GOLD, 17f) { g.equipItem(it) }
+            button(c, x, by - 48f, w, 40f, "Vender (+${fmt(Equip.sellValue(it))} z)", true, BTN_GREEN, 15f) { g.sellItem(it) }
+        }
     }
 
     /** Quadrado do item: fundo escuro, brilho e borda na cor do tier e ícone do tipo. */
@@ -1835,6 +1873,20 @@ class Renderer(private val g: Game, private val res: Resources) {
             label(c, k, x, y, 17f, INK2)
             label(c, v, x + 240f, y, 18f, INK)
             y += 30f
+        }
+        if (r.gear.sum() > 0) {
+            label(c, "Equipamentos", x, y, 17f, INK2)
+            var ex = x + 240f
+            for (t in 1..4) {
+                val sTxt = "T$t ${r.gear[t - 1]}   "
+                label(c, sTxt, ex, y, 18f, tierBtn(t)); text.textSize = 18f; ex += text.measureText(sTxt)
+            }
+            y += 26f
+            if (r.gearVenda > 0) { label(c, "Venda automática: +${fmt(r.gearVenda)} zeny", x + 240f, y, 14f, INK2); y += 22f }
+            if (r.gearRaros.isNotEmpty()) {
+                for (ln in wrap("✦ " + r.gearRaros.joinToString(", "), pw - 80f, 15f).take(2)) { label(c, ln, x, y, 15f, col(0xFF6A1B9A)); y += 22f }
+            }
+            y += 4f
         }
         if (r.cards.isNotEmpty()) {
             label(c, "★ " + r.cards.joinToString(", "), x, y, 17f, col(0xFF8D6E00)); y += 30f

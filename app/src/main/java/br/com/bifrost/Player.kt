@@ -47,6 +47,8 @@ class Player {
     val gear = arrayOfNulls<GearItem>(N_SLOTS)
     val bag = ArrayList<GearItem>()
     var nextUid = 1L
+    /** Venda automática por tier (1 a 4). */
+    val autoSell = BooleanArray(4)
 
     // ----- derivados -----
     val tot = IntArray(6)
@@ -170,6 +172,7 @@ class Player {
         put("gear", JSONArray().also { a -> gear.forEach { a.put(it?.toJson() ?: JSONObject.NULL) } })
         put("bag", JSONArray().also { a -> bag.forEach { a.put(it.toJson()) } })
         put("nextUid", nextUid)
+        put("autoSell", JSONArray().also { a -> autoSell.forEach { a.put(it) } })
     }
 
     fun fromJson(o: JSONObject) {
@@ -215,7 +218,40 @@ class Player {
             for (i in 0 until a.length()) a.optJSONObject(i)?.let { j -> GearItem.fromJson(j)?.let { bag.add(it) } }
         }
         nextUid = o.optLong("nextUid", 1L)
+        val av = o.optJSONArray("autoSell")
+        for (i in autoSell.indices) autoSell[i] = av?.optBoolean(i, Equip.vendaPadrao[i]) ?: Equip.vendaPadrao[i]
         buff.fill(0f)
+    }
+
+    /**
+     * Item novo chegando na bolsa. Venda automática do tier: vira zeny. Bolsa cheia: tiers 1 e 2 são vendidos,
+     * 3 e 4 entram mesmo acima do limite. Devolve GEAR_* e põe o zeny da venda em lastSale.
+     */
+    fun receive(it: GearItem): Int {
+        lastSale = 0L
+        val t = it.tier
+        if (t in 1..autoSell.size && autoSell[t - 1]) { sell(it); return GEAR_AUTO_SOLD }
+        if (bag.size >= Equip.limiteBolsa) {
+            if (t <= 2) { sell(it); return GEAR_FULL_SOLD }
+            bag.add(it); return GEAR_OVER
+        }
+        bag.add(it)
+        return GEAR_KEPT
+    }
+
+    var lastSale = 0L
+        private set
+
+    private fun sell(it: GearItem) {
+        lastSale = Equip.sellValue(it)
+        zeny += lastSale
+    }
+
+    /** Vende um item da bolsa (equipados nunca são vendidos). */
+    fun sellFromBag(it: GearItem): Long {
+        if (gear.any { g -> g === it } || !bag.remove(it)) return 0L
+        sell(it)
+        return lastSale
     }
 
     /** Equipa um item da bolsa; o que estava no espaço volta para a bolsa. */
