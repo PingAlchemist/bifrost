@@ -1455,17 +1455,21 @@ class NavGrid(private val W: Int, private val H: Int, private val free: (Float, 
 
     /**
      * Caminho de (sx,sy) até (tx,ty) contornando obstáculos: grava os pontos (x,y) em out e devolve quantos são;
-     * 0 = inalcançável. O último ponto é o próprio destino (ou o ponto livre mais perto dele).
+     * 0 = sem saída. O último ponto é o próprio destino (ou o ponto livre mais perto dele).
+     * Destino isolado (monstro entre troncos): vai até o ponto alcançável mais perto dele e marca [partial].
      */
     fun path(sx: Float, sy: Float, tx: Float, ty: Float, out: FloatArray): Int {
+        partial = false
         val s = nearestFree(sx, sy)
-        val g = nearestFree(tx, ty)
-        if (s < 0 || g < 0) return 0
+        var g = nearestFree(tx, ty)
+        if (s < 0) return 0
         stamp++
         hn = 0
         gCost[s] = 0f; came[s] = -1; seen[s] = stamp
-        val gx = g % GW
-        val gy = g / GW
+        val gx = if (g >= 0) g % GW else (tx / NC).toInt().coerceIn(0, GW - 1)
+        val gy = if (g >= 0) g / GW else (ty / NC).toInt().coerceIn(0, GH - 1)
+        var best = s
+        var bestH = Float.MAX_VALUE
         push(s, 0f)
         var found = false
         while (hn > 0 && hn < hk.size - 8) {
@@ -1475,6 +1479,10 @@ class NavGrid(private val W: Int, private val H: Int, private val free: (Float, 
             seen[c] = -stamp
             val cx = c % GW
             val cy = c / GW
+            val hx = abs(cx - gx).toFloat()
+            val hy = abs(cy - gy).toFloat()
+            val h = max(hx, hy) + 0.414f * min(hx, hy)
+            if (h < bestH) { bestH = h; best = c }
             for (k in 0 until 8) {
                 val nx = cx + NBX[k]
                 val ny = cy + NBY[k]
@@ -1491,12 +1499,16 @@ class NavGrid(private val W: Int, private val H: Int, private val free: (Float, 
                 push(n, ng + max(ddx, ddy) + 0.414f * min(ddx, ddy))
             }
         }
-        if (!found) return 0
+        if (!found) {
+            if (best == s) return 0
+            g = best
+            partial = true
+        }
         var nc = 0
         var c = g
         while (c >= 0 && nc < cells.size) { cells[nc++] = c; c = came[c] }
         // cells vai do destino até a origem; corta caminho: do ponto atual, pula para a célula mais distante visível
-        val last = if (cellFree(tx, ty)) 1 else 0
+        val last = if (!partial && cellFree(tx, ty)) 1 else 0
         val maxPts = out.size / 2
         var n = 0
         var curX = sx
@@ -1517,9 +1529,13 @@ class NavGrid(private val W: Int, private val H: Int, private val free: (Float, 
             i = j
         }
         if (last == 1 && n < maxPts) { out[n * 2] = tx; out[n * 2 + 1] = ty; n++ }
-        if (n == 0) { out[0] = gx * NC + NC / 2f; out[1] = gy * NC + NC / 2f; n = 1 } // já na célula do destino
+        if (n == 0) { out[0] = (g % GW) * NC + NC / 2f; out[1] = (g / GW) * NC + NC / 2f; n = 1 } // já na célula do destino
         return n
     }
+
+    /** O último path() não chega ao destino, só ao ponto livre mais perto dele. */
+    var partial = false
+        private set
 
 }
 

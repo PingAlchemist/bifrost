@@ -557,6 +557,7 @@ class Game {
     private var navY = 0f
     /** Último cálculo não achou caminho até o destino. */
     private var navFail = false
+    private var navPartial = false
 
     /** Põe em navX/navY o próximo ponto rumo a (tx,ty); refaz o caminho se o destino andar ou a cada 0,5s. */
     private fun navigate(tx: Float, ty: Float, dt: Float) {
@@ -568,12 +569,16 @@ class Game {
         if (moved || navT <= 0f) {
             navTx = tx; navTy = ty; navT = 0.5f
             navFail = false
+            navPartial = false
             if (nav.lineClear(px, py, tx, ty)) { navN = 0; return }
             navN = nav.path(px, py, tx, ty, navPts)
             navI = 0
+            navPartial = nav.partial
             if (navN == 0) { navFail = true; return }
         }
         if (navN == 0) return
+        // caminho parcial (alvo cercado de troncos): chegou ao ponto mais perto possível e não deu
+        if (navPartial && navI >= navN - 1 && dist(px, py, navPts[navI * 2], navPts[navI * 2 + 1]) < 14f) { navFail = true; return }
         while (navI < navN - 1 && dist(px, py, navPts[navI * 2], navPts[navI * 2 + 1]) < 12f) navI++
         // atalho: se já enxerga o ponto seguinte, vai direto nele
         if (navI < navN - 1 && nav.lineClear(px, py, navPts[navI * 2 + 2], navPts[navI * 2 + 3])) navI++
@@ -796,7 +801,7 @@ class Game {
         val j = (d.jexp * mul).toLong()
         heroText("+$e EXP", col(0xFF80D8FF))
         snd(Audio.S_POP, Audio.pitchFor(d))
-        val z = (d.zeny * (0.8f + rnd.nextFloat() * 0.4f)).toLong()
+        val z = (d.zeny * (0.8f + rnd.nextFloat() * 0.4f) * ZENY_RATE).toLong()
         p.zeny += z
         if (!p.fx) snd(Audio.S_COIN)
         if (p.fx && z > 0) spawnDrop(m.x, m.y, 0, z, "", C_GOLD)

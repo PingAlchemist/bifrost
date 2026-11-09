@@ -71,7 +71,7 @@ object Offline {
             kills += n
             exp += (n * d.exp * mul).toLong()
             jexp += (n * d.jexp * mul).toLong()
-            zeny += n * d.zeny
+            zeny += (n * d.zeny * ZENY_RATE).toLong()
             val l = sample(n * 0.35f * DROP_RATE, rnd)
             p.loot[id] += l
             lootTotal += l
